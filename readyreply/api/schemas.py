@@ -29,6 +29,7 @@ class MeOut(BaseModel):
 class SetupStatusOut(BaseModel):
     needs_setup: bool
     csrf_token: str
+    locale: str
 
 
 class VariableIO(BaseModel):

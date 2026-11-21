@@ -37,7 +37,11 @@ def _signed_in(response: Response, new: NewSession, settings: Settings) -> MeOut
 def setup_status(response: Response, container: ContainerDep) -> SetupStatusOut:
     csrf = secrets.token_urlsafe(32)
     _set_cookie(response, CSRF_COOKIE, csrf, container.settings)
-    return SetupStatusOut(needs_setup=container.auth.needs_setup.execute(), csrf_token=csrf)
+    return SetupStatusOut(
+        needs_setup=container.auth.needs_setup.execute(),
+        csrf_token=csrf,
+        locale=container.settings.locale,
+    )
 
 
 @router.post("/setup")
