@@ -101,6 +101,8 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | F11-05 | Windows without Python | the user double-clicks `start.bat` | it offers to install Python with `winget`, then continues. Without `winget`, it shows clear steps and a link. *(manual)* |
 | F11-06 | a new database | the app starts | Alembic migrates to the latest revision, and the business row with its built-in variables exists |
 | F11-07 | an existing database from an older revision | the app starts | it is migrated forward with no data loss |
+| F11-08 | the language menu | the user switches to English | every visible text changes to English, and the choice is remembered on that device |
+| F11-09 | the translations file | a test compares `es` and `en` | both have exactly the same keys, and every key used in the JS exists |
 
 ---
 
@@ -171,13 +173,13 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 
 | ID | Given | When | Then |
 |---|---|---|---|
-| F8-01 | `RR_AI_PROVIDER=manual` | the admin clicks "Suggest answer with AI" on an unanswered question | a prompt with the business variables and the question is shown with a **Copy prompt** button, the configured chat URL opens in a new tab, and a paste field is shown |
-| F8-02 | text pasted into the field | the admin edits it and clicks **Save** | a normal answer is created, and the question is resolved |
+| F8-01 | `RR_AI_PROVIDER=ollama` (default) and Ollama is running with the model | the admin clicks "Suggest answer with AI" on an unanswered question | a draft is shown in an editable field, with a "Generating…" indicator while waiting |
+| F8-02 | a draft in the field | the admin edits it and clicks **Save** | a normal answer is created, and the question is resolved |
 | F8-03 | any provider | a suggestion arrives | **nothing is saved** until the admin clicks Save. Leaving the page creates nothing. |
-| F8-04 | `RR_AI_PROVIDER=openai_compatible` with an API key in `.env` | the admin clicks Suggest | a draft fills the editable field |
-| F8-05 | the API returns an error, times out (10 seconds) or is unreachable | the admin clicks Suggest | a message `ai.unavailable` is shown and the app falls back to the manual flow |
-| F8-06 | `RR_AI_PROVIDER=ollama` and Ollama isn't running | the admin clicks Suggest | same as F8-05 |
-| F8-07 | the prompt | it is built | it contains only variables, existing answer titles and the question. It never contains user names, passwords or stats. |
+| F8-04 | `RR_AI_PROVIDER=manual` | the admin clicks Suggest | a prompt with the business variables and the question is shown with a **Copy prompt** button and a paste field. If `RR_AI_CHAT_URL` is set, it opens in a new tab. |
+| F8-05 | `RR_AI_PROVIDER=openai_compatible` with an API key in `.env` | the admin clicks Suggest | a draft fills the editable field |
+| F8-06 | Ollama isn't installed or running, the model isn't pulled, the provider errors, or it exceeds `RR_AI_TIMEOUT_SECONDS` | the admin clicks Suggest | a message `ai.unavailable` explains how to install Ollama, and the app falls back to the manual flow (F8-04) |
+| F8-07 | the prompt | it is built | it contains only variables, existing answer titles and the question, and asks for a reply in the UI language. It never contains user names, passwords or stats. |
 | F8-08 | a new provider class registered in the composition root | the app starts with it configured | it is used, and no other module was modified (checked in the architecture docs and a test with a fake provider) |
 | F8-09 | staff | they call `/api/ai/suggest` | the response is 403 |
 | F8-10 | the API key | the logs are inspected | the key never appears |
@@ -192,9 +194,9 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | P2 | Smart search with typos, missing accents and different wording | F3-01 to F3-06 and F3-12 in one test module tagged `promise_p2`. Plus an E2E test on a 360 px phone typing `a que hora abren`. |
 | P3 | One-click copy, ready for WhatsApp Business | E2E test at 1280 px and 360 px. One click on Copy, then read the clipboard through Playwright: it equals the rendered text, with line breaks and emojis kept. WhatsApp formatting (`*bold*`, `_italic_`) passes through unchanged. **Manual:** paste into WhatsApp Web and WhatsApp Business on a phone (owner checklist in `docs/QA_REPORT.md`). |
 | P4 | Unanswered questions show the owner which answers are missing | E2E test: search something with no answer, wait, and the question appears under Unanswered with its count. Create an answer from it and it disappears. |
-| P5 | Free, optional AI that suggests answers, always reviewed by a human | F8-01 to F8-03 with a fake provider. The manual provider needs no account, key or payment. The test checks that the answer count doesn't change until Save. |
+| P5 | Free, optional AI that suggests answers, always reviewed by a human | F8-01 to F8-06 against a fake Ollama HTTP server. Ollama and the manual provider need no account, key or payment. The test checks that the answer count doesn't change until Save. **Manual:** owner checklist with real Ollama and `gemma3:4b`. |
 | P6 | Team-ready: roles, usage stats, CSV import/export, demo data | F6, F7, F10 and F9 suites, tagged `promise_p6`. |
-| P7 | Installs on Windows with a double click and runs locally. Customer data never leaves the computer. | **Automated:** (a) a test that blocks all non-loopback sockets and runs the whole API suite with the default provider; (b) a test that no file in `web/static` references an `http(s)://` URL except the configurable AI chat URL; (c) the CSP header; (d) `start.sh` run from the zip in a clean folder. **Manual (owner, on Windows):** a documented 10-minute checklist: unzip, double-click, create admin, load demo, search, copy. |
+| P7 | Installs on Windows with a double click and runs locally. Customer data never leaves the computer. | **Automated:** (a) a test that blocks all non-loopback sockets and runs the whole API suite with the default provider; (b) a test that no file in `web/static` references an external `http(s)://` URL; (c) the CSP header; (d) `start.sh` run from the zip in a clean folder. **Manual (owner, on Windows):** a documented 10-minute checklist: unzip, double-click, create admin, load demo, search, copy. |
 | P8 | Done in 2 seconds; search < 200 ms with 1,000 answers | **Perf test:** load 1,000 generated answers and run 50 varied queries (typos, accents, synonyms). The p95 server time must be < 200 ms. **E2E:** with 1,000 answers loaded, measure from typing the query to text in the clipboard. It must be < 2 seconds. |
 
 ---

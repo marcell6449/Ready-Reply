@@ -32,8 +32,8 @@ Status: **DRAFT for review.** No production code is written until this document 
 | D8 | Passwords are hashed with Argon2id (`argon2-cffi`). | Required. Wheels exist for Windows. |
 | D9 | Copy uses `navigator.clipboard` and falls back to a hidden-textarea `execCommand('copy')`. | Phones open the app over plain `http://192.168.x.x`, which is **not** a secure context, so the Clipboard API is unavailable there. Without the fallback, copying on a phone breaks. |
 | D10 | The Windows installer `start.bat` uses Python 3.12+ if present. Otherwise it installs Python with `winget` (built into Windows 10/11), or opens a short guided page if `winget` is missing. Dependencies are installed **offline** from wheels bundled in the zip. | python.org is unreachable from this build environment, so a fully embedded Python runtime can't be bundled. Bundled wheels still make the install fast and work without internet after Python is present. |
-| D11 | AI providers sit behind the `SuggestionProvider` Protocol. v1 ships three: **ManualChat** (copy a prompt, open a configurable AI chat website, paste the result back), **Ollama** (free, local, private) and **OpenAI-compatible HTTP** (works with any provider that exposes that API, including free tiers). | Free by default. A new provider is a new class plus one registry line in the composition root. |
-| D12 | All visible text lives in one translations file: `readyreply/web/static/i18n/translations.json`. The domain raises exceptions with **codes**, the API returns those codes, and the frontend translates them. | Adding a language means editing one file. |
+| D11 | AI providers sit behind the `SuggestionProvider` Protocol. The **default is Ollama** (free, runs on the business's computer, private) with the model `gemma3:4b`. Gemma 3 4B writes good Spanish, needs about 3.3 GB of disk and runs on an 8 GB PC without a graphics card. `RR_AI_MODEL` can switch to something lighter, such as `qwen2.5:1.5b`, on weaker PCs. Two more providers ship: **ManualPrompt** (shows the prompt to copy into any AI the owner uses; it opens no website by default) and **OpenAI-compatible HTTP** (any provider with that API and a key in `.env`). If Ollama isn't installed or running, the app falls back to ManualPrompt. | Free and private by default. A new provider is a new class plus one registry line in the composition root. |
+| D12 | All visible text lives in one translations file: `readyreply/web/static/i18n/translations.json`. It ships with Spanish (`es`, the default) and English (`en`), and users can switch language from the menu. The domain raises exceptions with **codes**, the API returns those codes, and the frontend translates them. Demo data is in Spanish (Costa Rican businesses). | Adding a language means editing one file. |
 
 ## 3. Layers
 
@@ -100,7 +100,7 @@ readyreply/
     security/          argon2_hasher.py, tokens.py
     search/            rapidfuzz_distance.py
     csv/               codec.py (encoding/BOM, delimiter sniffing, size limit)
-    ai/                manual_chat.py, ollama.py, openai_compatible.py, registry.py
+    ai/                ollama.py, manual_prompt.py, openai_compatible.py, registry.py
     network/           lan_address.py, qr_svg.py (segno, generated locally)
     demo/              soda.json, salon.json, hardware.json
   api/
@@ -196,7 +196,7 @@ class SuggestionProvider(Protocol):  # suggest(SuggestionRequest) -> SuggestionR
 `SuggestionResult` is one of two cases:
 
 - `Draft(text)`: an API or local model answered.
-- `ManualHandoff(prompt, open_url)`: the user copies the prompt into a chat website and pastes the answer back.
+- `ManualHandoff(prompt, open_url | None)`: the user copies the prompt into any AI and pastes the answer back.
 
 Either way, the result is only shown in an editable field. Saving goes through the normal
 `CreateAnswer` use case, which needs an admin click.
@@ -236,12 +236,15 @@ Errors always look like `{"code": "answer.title_taken", "details": {...}}`.
 |---|---|
 | `RR_DATABASE_URL` | `sqlite:///./data/readyreply.db` |
 | `RR_HOST`, `RR_PORT` | `0.0.0.0`, `8000` (tries the next free port up to 8010) |
-| `RR_LOCALE` | `es` |
+| `RR_LOCALE` | `es` (`es` \| `en`) |
 | `RR_SESSION_HOURS` | `12` |
 | `RR_MAX_CSV_BYTES` | `1048576` |
-| `RR_AI_PROVIDER` | `manual` (`manual` \| `ollama` \| `openai_compatible`) |
-| `RR_AI_CHAT_URL` | URL opened by the manual provider (configurable) |
-| `RR_AI_BASE_URL`, `RR_AI_MODEL`, `RR_AI_API_KEY` | Only for API providers. The key is a secret and lives only in `.env`. |
+| `RR_AI_PROVIDER` | `ollama` (`ollama` \| `manual` \| `openai_compatible`) |
+| `RR_AI_MODEL` | `gemma3:4b` |
+| `RR_AI_BASE_URL` | `http://127.0.0.1:11434` for Ollama |
+| `RR_AI_CHAT_URL` | empty. Optional website opened by the manual provider. |
+| `RR_AI_API_KEY` | Only for `openai_compatible`. The key is a secret and lives only in `.env`. |
+| `RR_AI_TIMEOUT_SECONDS` | `60` (a 4B model on a CPU can take 10–40 seconds) |
 | `RR_COOKIE_SECURE` | `false` (set `true` behind HTTPS) |
 
 ## 10. Security and privacy
@@ -255,7 +258,7 @@ Errors always look like `{"code": "answer.title_taken", "details": {...}}`.
   - All assets are local and the QR code is generated on the machine.
   - Finding the LAN IP uses a UDP `connect()` call, which sends no packets.
   - A test blocks every non-loopback socket and runs the full API suite.
-  - The only outbound call is the AI provider, and only when the user configured an API or Ollama provider. Ollama itself is local.
+  - The default AI provider, Ollama, runs on the same computer (`127.0.0.1`). The only call that leaves the computer is to an `openai_compatible` provider, and only when the owner configures one.
 
 ## 11. Path to SaaS (not built in v1)
 
@@ -276,6 +279,7 @@ Errors always look like `{"code": "answer.title_taken", "details": {...}}`.
 | E2E | Main flows at 1280 px and 360 px, clipboard contents, screenshots for the README | Playwright (Python) |
 | QA | Hostile inputs: SQL/HTML injection, emojis, large files, permissions, concurrent upserts | pytest + Playwright, written by an independent agent |
 | Install | `start.sh` in a clean folder from the zip. `start.bat` is tested by the owner on Windows. | script + documented manual steps |
+| AI | Providers are tested against fake HTTP servers. A real Ollama run is a manual check by the owner, because Ollama and its models can't be downloaded in this build environment. | pytest + manual checklist |
 
 Quality gates: `ruff check`, `ruff format --check`, `mypy --strict`, total coverage ≥ 90%,
 domain coverage 100%, and pytest passing three times in a row.
@@ -284,3 +288,4 @@ domain coverage 100%, and pytest passing three times in a row.
 
 - `start.bat` can't be executed in this Linux build environment. Windows install is verified with a documented manual checklist by the owner before publishing.
 - The Windows wheels in the zip are built for 64-bit Windows 10/11 and Python 3.12–3.13.
+- Ollama is a separate free install (ollama.com) plus a one-time `ollama pull gemma3:4b` (about 3.3 GB). The README explains it, and the app works fully without it.
