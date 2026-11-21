@@ -1,5 +1,5 @@
-// Copy text. Phones open the app over http://192.168.x.x, which is not a secure context,
-// so navigator.clipboard is missing there: fall back to a hidden textarea.
+// Copy text. Phones open the app over plain HTTP on the local network (192.168.x.x),
+// which is not a secure context, so navigator.clipboard is missing there: use a textarea.
 
 export async function copyText(text) {
   if (window.isSecureContext && navigator.clipboard?.writeText) {
