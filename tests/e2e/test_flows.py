@@ -29,8 +29,10 @@ def test_search_with_typos_and_copy_in_one_click(page: Page, live_server: LiveSe
     first.get_by_role("button", name="Copiar").click()
     expect(page.locator("#toast")).to_contain_text("Copiado")
     text = clipboard(page)
-    assert text == ("¡Hola! 👋 En *Soda La Esquina* atendemos lunes a sábado de 6:30 a.m. a "
-                    "4:00 p.m. (domingos cerrado). ¡Le esperamos!")
+    assert text == (
+        "¡Hola! 👋 En *Soda La Esquina* atendemos lunes a sábado de 6:30 a.m. a "
+        "4:00 p.m. (domingos cerrado). ¡Le esperamos!"
+    )
 
 
 @pytest.mark.promise_p3
@@ -97,8 +99,13 @@ def test_ai_manual_flow_needs_human_save(page: Page, live_server: LiveServer) ->
     answers_before = page.evaluate("fetch('/api/answers').then(r => r.json()).then(a => a.length)")
     page.locator(".ai-box textarea:not([readonly])").fill("¡Sí! Las mascotas son bienvenidas 🐶")
     page.get_by_role("button", name="Revisar y guardar como respuesta").click()
-    expect(page.locator("textarea[name=body]")).to_have_value("¡Sí! Las mascotas son bienvenidas 🐶")
-    assert page.evaluate("fetch('/api/answers').then(r => r.json()).then(a => a.length)") == answers_before
+    expect(page.locator("textarea[name=body]")).to_have_value(
+        "¡Sí! Las mascotas son bienvenidas 🐶"
+    )
+    assert (
+        page.evaluate("fetch('/api/answers').then(r => r.json()).then(a => a.length)")
+        == answers_before
+    )
     page.fill("input[name=title]", "Mascotas")
     page.click("button[type=submit]")
     page.wait_for_url("**/#/unanswered")
@@ -140,7 +147,8 @@ def test_expired_session_keeps_search(page: Page, live_server: LiveServer) -> No
 def test_switch_language_to_english(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
     page.click("#lang-toggle")
-    expect(page.locator("#search-input")).to_have_attribute("placeholder", "Search an answer… (e.g. hours, sinpe, delivery)")
+    placeholder = "Search an answer… (e.g. hours, sinpe, delivery)"
+    expect(page.locator("#search-input")).to_have_attribute("placeholder", placeholder)
     expect(page.locator("#nav")).to_contain_text("Search")
     page.reload()
     expect(page.locator("#logout")).to_have_text("Sign out")
@@ -161,8 +169,19 @@ def test_html_in_user_data_is_shown_as_text(page: Page, live_server: LiveServer)
 def test_no_horizontal_scroll_on_any_screen(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
     load_demo(page, live_server, "hardware")
-    for route in ("search", "unanswered", "answers", "business", "synonyms", "stats", "users",
-                  "data", "phone", "answers/new", "more"):
+    for route in (
+        "search",
+        "unanswered",
+        "answers",
+        "business",
+        "synonyms",
+        "stats",
+        "users",
+        "data",
+        "phone",
+        "answers/new",
+        "more",
+    ):
         page.goto(f"{live_server.url}/#/{route}")
         page.wait_for_timeout(250)
         assert_no_horizontal_scroll(page)
@@ -201,7 +220,8 @@ def test_two_seconds_with_1000_answers(page: Page, live_server: LiveServer) -> N
     create_admin(page, live_server)
     load_demo(page, live_server)
     rows = "\n".join(
-        f"Pregunta {i} sobre tema {i % 50},General,Texto de la respuesta {i},t{i}" for i in range(990)
+        f"Pregunta {i} sobre tema {i % 50},General,Texto de la respuesta {i},t{i}"
+        for i in range(990)
     )
     assert page.evaluate(IMPORT_CSV, "title,category,body,tags\n" + rows) == 990
     count = page.evaluate("fetch('/api/answers').then(r => r.json()).then(a => a.length)")

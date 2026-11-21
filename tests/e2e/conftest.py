@@ -9,14 +9,24 @@ from pathlib import Path
 
 import pytest
 import uvicorn
-from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
+from playwright.sync_api import (
+    Browser,
+    BrowserContext,
+    Page,
+    Playwright,
+    ViewportSize,
+    sync_playwright,
+)
 
 from readyreply.config import Settings
 from readyreply.infrastructure.network.lan import lan_ip
 from readyreply.main import create_app
 
 CHROMIUM = os.environ.get("RR_E2E_CHROMIUM", "/opt/pw-browsers/chromium")
-VIEWPORTS = {"desktop": {"width": 1280, "height": 800}, "phone": {"width": 360, "height": 740}}
+VIEWPORTS: dict[str, ViewportSize] = {
+    "desktop": {"width": 1280, "height": 800},
+    "phone": {"width": 360, "height": 740},
+}
 SCREENSHOTS = Path(__file__).resolve().parents[2] / "docs" / "screenshots"
 ADMIN_PASSWORD = "admin-pass-1"
 
@@ -30,9 +40,14 @@ def _free_port() -> int:
 class LiveServer:
     def __init__(self, database: Path) -> None:
         self.port = _free_port()
-        settings = Settings(database_url=f"sqlite:///{database}", open_browser=False,
-                            ai_provider="manual", _env_file=None)
-        config = uvicorn.Config(create_app(settings), host="0.0.0.0", port=self.port, log_level="warning")
+        settings = Settings(
+            database_url=f"sqlite:///{database}",
+            open_browser=False,
+            ai_provider="manual",
+            _env_file=None,
+        )
+        app = create_app(settings)
+        config = uvicorn.Config(app, host="0.0.0.0", port=self.port, log_level="warning")
         self.server = uvicorn.Server(config)
         self.thread = threading.Thread(target=self.server.run, daemon=True)
         self.url = f"http://127.0.0.1:{self.port}"
@@ -78,8 +93,12 @@ def device(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture
 def context(browser: Browser, device: str, live_server: LiveServer) -> Iterator[BrowserContext]:
-    context = browser.new_context(viewport=VIEWPORTS[device], device_scale_factor=1,
-                                  has_touch=device == "phone", locale="es-CR")
+    context = browser.new_context(
+        viewport=VIEWPORTS[device],
+        device_scale_factor=1,
+        has_touch=device == "phone",
+        locale="es-CR",
+    )
     context.grant_permissions(["clipboard-read", "clipboard-write"], origin=live_server.url)
     yield context
     context.close()

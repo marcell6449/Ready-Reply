@@ -15,8 +15,9 @@ def _capture(page: Page, device: str, name: str) -> None:
 
 def test_capture_screenshots(browser: Browser, live_server: LiveServer, device: str) -> None:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-    context = browser.new_context(viewport=VIEWPORTS[device], device_scale_factor=2,
-                                  locale="es-CR", color_scheme="light")
+    context = browser.new_context(
+        viewport=VIEWPORTS[device], device_scale_factor=2, locale="es-CR", color_scheme="light"
+    )
     context.grant_permissions(["clipboard-read", "clipboard-write"], origin=live_server.url)
     page = context.new_page()
     create_admin(page, live_server)
