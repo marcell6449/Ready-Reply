@@ -35,8 +35,8 @@ def main() -> None:
     _ensure_data_dir(settings.database_url)
     port = free_port(settings.host, settings.port)
     local_url = f"http://127.0.0.1:{port}/"
-    print(f"\n  Ready Reply is running.\n  On this computer: {local_url}")
-    print(f"  On your phone (same Wi-Fi): http://{lan_ip()}:{port}/\n")
+    print(f"\n  Ready Reply is running.\n  On this computer: {local_url}", flush=True)
+    print(f"  On your phone (same Wi-Fi): http://{lan_ip()}:{port}/\n", flush=True)
     if settings.open_browser:
         threading.Timer(BROWSER_DELAY_SECONDS, webbrowser.open, args=(local_url,)).start()
     uvicorn.run(
