@@ -40,29 +40,59 @@ Status: **DRAFT for review.** No production code is written until this document 
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │ Frontend  (HTML/CSS/JS, i18n file)                            │
+│   AI: "Suggest answer with AI" button, editable draft field,  │
+│       "Copy prompt" panel for the manual fallback             │
 └──────────────▲────────────────────────────────────────────────┘
                │ JSON over HTTP (cookie session + CSRF header)
 ┌──────────────┴────────────────────────────────────────────────┐
 │ API  (FastAPI routers, Pydantic schemas, auth/CSRF deps,      │
 │       error → HTTP code mapping)                              │
+│   AI: POST /api/ai/suggest (admin only)                       │
 └──────────────▲────────────────────────────────────────────────┘
                │ calls
 ┌──────────────┴────────────────────────────────────────────────┐
 │ Application  (use cases, ports = Protocols)                   │
+│   AI: BuildSuggestionPrompt, RequestSuggestion use cases      │
+│       SuggestionProvider port (Protocol)                      │
 └───────▲──────────────────────────────────────────▲────────────┘
         │ uses pure rules                          │ implemented by
 ┌───────┴──────────────┐            ┌──────────────┴─────────────┐
 │ Domain               │            │ Infrastructure             │
 │ entities, templates, │            │ SQLAlchemy repos + UoW,    │
 │ search, permissions, │            │ Argon2, rapidfuzz, CSV,    │
-│ CSV row rules, errors│            │ AI providers, LAN/QR       │
-└──────────────────────┘            └────────────────────────────┘
-        ▲ no imports of FastAPI, SQLAlchemy, rapidfuzz or I/O
+│ CSV row rules, errors│            │ LAN/QR                     │
+│ AI: SuggestionRequest│            │ AI: OllamaProvider         │
+│     Draft,           │            │     (default, gemma3:4b),  │
+│     ManualHandoff,   │            │     ManualPromptProvider,  │
+│     prompt rules     │            │     OpenAICompatible,      │
+│                      │            │     provider registry      │
+└──────────────────────┘            └─────────────┬──────────────┘
+        ▲ no imports of FastAPI, SQLAlchemy,      │ HTTP to 127.0.0.1:11434
+          rapidfuzz or I/O                        ▼
+                                    ┌────────────────────────────┐
+                                    │ Ollama (separate free app  │
+                                    │ on the same computer)      │
+                                    └────────────────────────────┘
 ```
 
 Dependency rule: arrows point inward. The domain imports nothing from other layers.
 `readyreply/main.py` is the **composition root**. It is the only place that wires concrete
-classes to ports.
+classes to ports. For AI, it reads `RR_AI_PROVIDER` and picks the provider from the registry.
+
+### 3.1 Where the AI lives (one suggestion, end to end)
+
+| Step | Layer | Module | What happens |
+|---|---|---|---|
+| 1 | Frontend | `web/static/js/ai.js` | The admin clicks "Suggest answer with AI" on an unanswered question. |
+| 2 | API | `api/routers/ai.py` | Checks the session, the admin role and the CSRF token, then calls the use case. |
+| 3 | Application | `application/ai.py` | `BuildSuggestionPrompt` gathers the business variables, existing answer titles and the question. `RequestSuggestion` calls the `SuggestionProvider` port. |
+| 4 | Domain | `domain/ai.py` | Pure rules: what the prompt may contain (never user names, passwords or stats), maximum length, reply language. Defines the result types `Draft` and `ManualHandoff`. |
+| 5 | Infrastructure | `infrastructure/ai/ollama.py` | Sends the prompt to Ollama on `127.0.0.1:11434`. If Ollama doesn't answer, the use case falls back to `ManualPromptProvider`. |
+| 6 | Frontend | `web/static/js/ai.js` | Shows the draft in an **editable** field. Nothing is saved. |
+| 7 | Application | `application/answers.py` | Only when the admin clicks **Save**, the normal `CreateAnswer` use case stores it and the question is marked resolved. |
+
+The AI has **no access** to the repositories that write data. It can only return text, so it
+can never save anything by itself (promise P5).
 
 ## 4. Modules
 
@@ -82,6 +112,7 @@ readyreply/
       engine.py        SearchEngine: combines scorers, field weights, threshold
     csv_rules.py       row validation for import (pure; no file I/O)
     unanswered.py      question key + "should record" rule (min length, stability)
+    ai.py              SuggestionRequest, Draft, ManualHandoff, prompt content rules
   application/
     ports.py           Protocols: repositories, UnitOfWork, PasswordHasher, Clock,
                        TokenGenerator, EditDistance, SuggestionProvider, BusinessResolver
