@@ -1,0 +1,32 @@
+{
+ "es": {
+  "server.copy_suffix": "copia",
+  "server.ai.language": "español",
+  "server.ai.intro": "Eres un asistente que redacta respuestas cortas de WhatsApp para el negocio \"{business}\". Escribe en {language}, con un tono amable y profesional.",
+  "server.ai.rules": "Reglas: responde en un máximo de 3 oraciones. Cuando necesites un dato del negocio, escribe la variable entre llaves (por ejemplo {hours}) en lugar del valor, para que la respuesta se mantenga actualizada. No inventes precios ni datos que no estén en la lista. Devuelve solo el texto de la respuesta.",
+  "server.ai.variables": "Datos del negocio (variable: valor):",
+  "server.ai.titles": "Respuestas que ya existen:",
+  "server.ai.question": "Pregunta del cliente:",
+  "var.name": "Nombre del negocio",
+  "var.hours": "Horario",
+  "var.address": "Dirección",
+  "var.sinpe": "Número de SINPE Móvil",
+  "var.phone": "Teléfono",
+  "var.prices": "Precios"
+ },
+ "en": {
+  "server.copy_suffix": "copy",
+  "server.ai.language": "English",
+  "server.ai.intro": "You are an assistant that writes short WhatsApp replies for the business \"{business}\". Write in {language}, in a friendly and professional tone.",
+  "server.ai.rules": "Rules: answer in at most 3 sentences. When you need a business detail, write the variable in braces (for example {hours}) instead of the value, so the answer stays up to date. Do not invent prices or details that are not in the list. Return only the reply text.",
+  "server.ai.variables": "Business details (variable: value):",
+  "server.ai.titles": "Answers that already exist:",
+  "server.ai.question": "Customer question:",
+  "var.name": "Business name",
+  "var.hours": "Opening hours",
+  "var.address": "Address",
+  "var.sinpe": "SINPE Móvil number",
+  "var.phone": "Phone",
+  "var.prices": "Prices"
+ }
+}

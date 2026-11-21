@@ -1,0 +1,50 @@
+{
+  "variables": {
+    "name": "Soda La Esquina",
+    "hours": "lunes a sábado de 6:30 a.m. a 4:00 p.m. (domingos cerrado)",
+    "address": "100 m norte de la iglesia de San Pedro, Montes de Oca",
+    "sinpe": "8888-1234 a nombre de María Rodríguez",
+    "phone": "2222-1234",
+    "prices": "Casado ₡3.800 · Gallo pinto ₡2.500 · Refresco natural ₡1.200"
+  },
+  "custom": [
+    {"key": "menu_dia", "label": "Menú del día", "value": "Casado con pollo en salsa, arroz, frijoles, ensalada y maduro"},
+    {"key": "envio_costo", "label": "Costo de envío", "value": "₡1.000 dentro de 2 km"}
+  ],
+  "synonyms": [
+    ["horario", "abren", "atienden", "cierran", "hora", "abierto", "abre"],
+    ["ubicacion", "donde", "direccion", "llegar", "ubicados", "queda"],
+    ["sinpe", "pago", "pagar", "transferencia", "simpe"],
+    ["precio", "precios", "cuanto", "cuesta", "vale", "costo"],
+    ["envio", "envios", "express", "delivery", "domicilio", "mandan"],
+    ["menu", "almuerzo", "comida", "casado", "plato"]
+  ],
+  "answers": [
+    {"title": "Horario", "category": "Información", "tags": ["horario"],
+     "body": "¡Hola! 👋 En *{name}* atendemos {hours}. ¡Le esperamos!"},
+    {"title": "Ubicación", "category": "Información", "tags": ["direccion"],
+     "body": "Estamos en {address} 📍. Si necesita indicaciones, llámenos al {phone}."},
+    {"title": "Pago por SINPE Móvil", "category": "Pagos", "tags": ["sinpe", "pago"],
+     "body": "Puede pagar por SINPE Móvil al *{sinpe}*. Por favor envíenos el comprobante por aquí. ¡Gracias! 🙏"},
+    {"title": "Precios", "category": "Precios", "tags": ["precio"],
+     "body": "Estos son algunos precios: {prices}. ¿Qué le gustaría pedir?"},
+    {"title": "Menú del día", "category": "Comida", "tags": ["menu", "almuerzo"],
+     "body": "Hoy tenemos: *{menu_dia}* 🍽️. ¿Le apartamos uno?"},
+    {"title": "Envíos a domicilio", "category": "Envíos", "tags": ["envio", "express"],
+     "body": "Sí hacemos express 🛵. El envío cuesta {envio_costo}. Envíenos su dirección exacta."},
+    {"title": "Hacer un pedido", "category": "Pedidos", "tags": ["pedido", "ordenar"],
+     "body": "¡Con gusto! Indíquenos qué desea, cuántas porciones y si es para comer aquí, llevar o express."},
+    {"title": "Pedido listo", "category": "Pedidos", "tags": ["pedido", "listo"],
+     "body": "¡Su pedido está listo! ✅ Puede pasar a recogerlo a {address}."},
+    {"title": "Opciones vegetarianas", "category": "Comida", "tags": ["vegetariano", "vegano"],
+     "body": "Sí tenemos opción vegetariana: casado con huevo o con picadillo de papa. ¿Le interesa?"},
+    {"title": "Reservaciones para grupos", "category": "Pedidos", "tags": ["reservacion", "grupo"],
+     "body": "Para grupos de más de 8 personas le recomendamos reservar al {phone} con un día de anticipación."},
+    {"title": "Pago con tarjeta", "category": "Pagos", "tags": ["tarjeta", "pago"],
+     "body": "Aceptamos tarjeta 💳, efectivo y SINPE Móvil al {sinpe}."},
+    {"title": "Gracias por su compra", "category": "Despedida", "tags": ["gracias"],
+     "body": "¡Muchas gracias por preferir *{name}*! 💛 Que tenga un excelente día."},
+    {"title": "Producto agotado", "category": "Pedidos", "tags": ["agotado"],
+     "body": "Disculpe, ese plato ya se nos agotó por hoy 😔. Le recomendamos el menú del día: {menu_dia}."}
+  ]
+}

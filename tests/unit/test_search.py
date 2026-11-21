@@ -124,3 +124,14 @@ def test_only_stop_words_still_searches() -> None:
 
 def test_index_reports_size() -> None:
     assert len(index()) == len(DOCS)
+
+
+def test_answer_matching_more_related_terms_wins_tie() -> None:
+    docs = [
+        SearchDocument(1, "Pago con tarjeta", "", ("pago",), ""),
+        SearchDocument(2, "Pago por SINPE", "", ("pago", "sinpe"), ""),
+    ]
+    groups = [("sinpe", "pago", "simpe")]
+    built = SearchIndex.build(docs, groups, Tokenizer(STOP_WORDS))
+    hits = engine().search(built, "simpe", {})
+    assert hits[0].answer_id == 2

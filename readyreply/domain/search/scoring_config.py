@@ -23,6 +23,9 @@ BODY_WEIGHT = 1.0
 COVERAGE_BASE = 0.5
 COVERAGE_BONUS = 0.5
 
+# Extra related words matched for the same query word add this share of their score.
+RELATED_MATCH_SHARE = 0.1
+
 MIN_SCORE = 0.3
 
 FIELD_WEIGHTS = MappingProxyType(

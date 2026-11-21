@@ -1,0 +1,51 @@
+{
+  "variables": {
+    "name": "Ferretería El Clavo",
+    "hours": "lunes a viernes de 7:00 a.m. a 6:00 p.m. y sábados de 7:00 a.m. a 1:00 p.m.",
+    "address": "Frente al parque de Heredia centro, contiguo al Banco Nacional",
+    "sinpe": "8666-9012 a nombre de Ferretería El Clavo",
+    "phone": "2260-9012",
+    "prices": "Saco de cemento ₡6.900 · Varilla #3 ₡2.300 · Galón de pintura desde ₡12.500"
+  },
+  "custom": [
+    {"key": "envio_costo", "label": "Costo de envío", "value": "gratis en compras mayores a ₡50.000 dentro de Heredia; si no, ₡3.000"},
+    {"key": "factura", "label": "Datos para factura", "value": "nombre completo o razón social, cédula y correo electrónico"}
+  ],
+  "synonyms": [
+    ["horario", "abren", "atienden", "cierran", "hora", "abierto", "abre"],
+    ["ubicacion", "donde", "direccion", "llegar", "ubicados", "queda"],
+    ["sinpe", "pago", "pagar", "transferencia", "simpe"],
+    ["precio", "precios", "cuanto", "cuesta", "vale", "costo"],
+    ["envio", "envios", "express", "flete", "domicilio", "mandan", "transporte"],
+    ["cotizacion", "cotizar", "proforma", "presupuesto"],
+    ["factura", "electronica", "facturar"]
+  ],
+  "answers": [
+    {"title": "Horario", "category": "Información", "tags": ["horario"],
+     "body": "¡Buenas! 🔧 En *{name}* atendemos {hours}."},
+    {"title": "Ubicación", "category": "Información", "tags": ["direccion"],
+     "body": "Estamos {address} 📍."},
+    {"title": "Precios de materiales", "category": "Precios", "tags": ["precio", "cemento"],
+     "body": "Algunos precios de hoy: {prices}. Los precios pueden variar; con gusto le confirmamos."},
+    {"title": "Cotización", "category": "Ventas", "tags": ["cotizacion", "proforma"],
+     "body": "Con gusto le cotizamos 📝. Envíenos la lista de materiales con cantidades y le respondemos hoy mismo."},
+    {"title": "Envíos y fletes", "category": "Envíos", "tags": ["envio", "flete"],
+     "body": "Sí hacemos entregas 🚚. Costo de envío: {envio_costo}."},
+    {"title": "Pago por SINPE Móvil", "category": "Pagos", "tags": ["sinpe", "pago"],
+     "body": "Puede pagar por SINPE Móvil al *{sinpe}*. Envíenos el comprobante y preparamos su pedido."},
+    {"title": "Factura electrónica", "category": "Pagos", "tags": ["factura"],
+     "body": "Sí emitimos factura electrónica 🧾. Necesitamos: {factura}."},
+    {"title": "Disponibilidad de un producto", "category": "Ventas", "tags": ["disponible", "hay"],
+     "body": "Déjeme revisar el inventario y le confirmo en unos minutos si lo tenemos disponible."},
+    {"title": "Corte de madera y tubos", "category": "Servicios", "tags": ["corte", "madera"],
+     "body": "Sí cortamos madera, tubos y varilla a la medida en el local. Envíenos las medidas."},
+    {"title": "Mezcla de pintura", "category": "Servicios", "tags": ["pintura", "color"],
+     "body": "Preparamos pintura en cualquier color 🎨. Traiga una muestra o el código del color."},
+    {"title": "Garantía y devoluciones", "category": "Información", "tags": ["garantia", "devolucion"],
+     "body": "Aceptamos cambios en 8 días con la factura y el producto en buen estado. Las herramientas eléctricas tienen la garantía del fabricante."},
+    {"title": "Pedido listo para retirar", "category": "Ventas", "tags": ["pedido", "listo"],
+     "body": "✅ Su pedido está listo. Puede retirarlo en {address}, {hours}."},
+    {"title": "Gracias por su compra", "category": "Despedida", "tags": ["gracias"],
+     "body": "¡Gracias por comprar en *{name}*! Para cualquier consulta, llámenos al {phone}. 🔨"}
+  ]
+}

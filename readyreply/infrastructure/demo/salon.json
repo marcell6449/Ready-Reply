@@ -1,0 +1,51 @@
+{
+  "variables": {
+    "name": "Salón Bella Vida",
+    "hours": "martes a sábado de 9:00 a.m. a 7:00 p.m.",
+    "address": "Centro Comercial Plaza Real, local 12, Alajuela centro",
+    "sinpe": "8777-5678 a nombre de Bella Vida S.A.",
+    "phone": "2440-5678",
+    "prices": "Corte dama ₡8.000 · Corte caballero ₡5.000 · Manicure ₡6.000 · Tinte desde ₡18.000"
+  },
+  "custom": [
+    {"key": "adelanto", "label": "Adelanto para reservar", "value": "₡3.000"},
+    {"key": "instagram", "label": "Instagram", "value": "@bellavida.cr"}
+  ],
+  "synonyms": [
+    ["horario", "abren", "atienden", "cierran", "hora", "abierto", "abre"],
+    ["ubicacion", "donde", "direccion", "llegar", "ubicados", "queda"],
+    ["sinpe", "pago", "pagar", "transferencia", "simpe"],
+    ["precio", "precios", "cuanto", "cuesta", "vale", "costo"],
+    ["cita", "citas", "reservar", "reserva", "agendar", "espacio"],
+    ["unas", "manicure", "pedicure", "acrilicas"],
+    ["corte", "cortar", "pelo", "cabello"]
+  ],
+  "answers": [
+    {"title": "Horario", "category": "Información", "tags": ["horario"],
+     "body": "¡Hola! 💇‍♀️ En *{name}* atendemos {hours}."},
+    {"title": "Ubicación", "category": "Información", "tags": ["direccion"],
+     "body": "Nos encuentra en {address} 📍."},
+    {"title": "Precios", "category": "Precios", "tags": ["precio"],
+     "body": "Nuestros precios: {prices}. ¿Qué servicio le interesa?"},
+    {"title": "Agendar una cita", "category": "Citas", "tags": ["cita", "reservar"],
+     "body": "¡Con gusto le agendamos! 📅 Indíquenos el servicio, el día y la hora que prefiere. Para confirmar pedimos un adelanto de {adelanto} por SINPE Móvil al {sinpe}."},
+    {"title": "Confirmación de cita", "category": "Citas", "tags": ["cita", "confirmar"],
+     "body": "✅ Su cita quedó confirmada. Le esperamos en {address}. Si no puede asistir, avísenos con 24 horas de anticipación."},
+    {"title": "Cancelar o cambiar cita", "category": "Citas", "tags": ["cita", "cancelar"],
+     "body": "No hay problema. Indíquenos la nueva fecha y hora. Con 24 horas de aviso, su adelanto se mantiene para la nueva cita."},
+    {"title": "Pago por SINPE Móvil", "category": "Pagos", "tags": ["sinpe", "pago"],
+     "body": "Puede pagar por SINPE Móvil al *{sinpe}*. Envíenos el comprobante por aquí, por favor 🙏."},
+    {"title": "Manicure y pedicure", "category": "Servicios", "tags": ["unas", "manicure"],
+     "body": "Hacemos manicure, pedicure, uñas acrílicas y en gel 💅. Precios: {prices}."},
+    {"title": "Tinte y color", "category": "Servicios", "tags": ["tinte", "color"],
+     "body": "El precio del tinte depende del largo del cabello. Le recomendamos una valoración gratuita. Precios base: {prices}."},
+    {"title": "Trabajos anteriores", "category": "Información", "tags": ["fotos", "instagram"],
+     "body": "Puede ver nuestros trabajos en Instagram: {instagram} ✨"},
+    {"title": "Llegar tarde a la cita", "category": "Citas", "tags": ["tarde"],
+     "body": "Le damos 15 minutos de tolerancia. Después de ese tiempo podríamos tener que reprogramar su cita."},
+    {"title": "Productos para el cabello", "category": "Servicios", "tags": ["productos", "shampoo"],
+     "body": "Sí vendemos productos profesionales para el cuidado del cabello. Pregunte en su próxima visita o llámenos al {phone}."},
+    {"title": "Gracias por su visita", "category": "Despedida", "tags": ["gracias"],
+     "body": "¡Gracias por visitar *{name}*! 💖 Nos encantaría ver su opinión en {instagram}."}
+  ]
+}

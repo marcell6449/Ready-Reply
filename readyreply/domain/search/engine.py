@@ -1,7 +1,7 @@
 """Ranks answers for a query by combining all scorers."""
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from readyreply.domain.search import scoring_config as config
@@ -54,12 +54,19 @@ class SearchEngine:
         return [hit for hit in hits if hit.score >= config.MIN_SCORE]
 
     def _token_scores(self, index: SearchIndex, token: str) -> dict[int, float]:
-        best: dict[int, float] = {}
+        per_term: dict[int, dict[str, float]] = defaultdict(dict)
         for scorer in self._scorers:
             for match in scorer.matches(token, index):
                 for answer_id, weight in index.postings[match.term].items():
-                    best[answer_id] = max(best.get(answer_id, 0.0), match.strength * weight)
-        return best
+                    terms = per_term[answer_id]
+                    terms[match.term] = max(terms.get(match.term, 0.0), match.strength * weight)
+        return {answer_id: _combine(terms.values()) for answer_id, terms in per_term.items()}
+
+
+def _combine(term_scores: Iterable[float]) -> float:
+    """Best match counts fully; other related words matched add a small share."""
+    ordered = sorted(term_scores, reverse=True)
+    return ordered[0] + config.RELATED_MATCH_SHARE * sum(ordered[1:])
 
 
 def _coverage(matched_tokens: int, total_tokens: int) -> float:
