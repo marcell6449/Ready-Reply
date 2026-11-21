@@ -1,0 +1,74 @@
+[project]
+name = "readyreply"
+version = "1.0.0"
+description = "Ready-made answers for small businesses that serve customers on WhatsApp."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.165.0",
+    "uvicorn==0.54.0",
+    "sqlalchemy==2.1.9",
+    "alembic==1.20.1",
+    "pydantic-settings==2.16.3",
+    "argon2-cffi==25.1.0",
+    "rapidfuzz==3.14.6",
+    "segno==1.6.6",
+    "httpx==0.28.1",
+    "python-multipart==0.0.34",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.2.0", "pytest-cov==7.1.0", "ruff==0.17.6", "mypy==2.4.1", "playwright==1.65.2"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["readyreply*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "N", "C90", "PL", "RUF", "S", "BLE", "PT", "RET", "ARG", "PTH", "TRY", "ERA"]
+ignore = ["TRY003", "PLR2004", "S101", "PLR0913", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "PLR2004", "ARG", "PLC0415", "PLR0915"]
+"scripts/**" = ["S603", "S607", "T201"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+exclude = ["migrations/versions/", "build/", "dist/"]
+
+[[tool.mypy.overrides]]
+module = ["segno.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "e2e: browser end-to-end tests (Playwright)",
+    "perf: performance tests",
+    "promise_p1", "promise_p2", "promise_p3", "promise_p4",
+    "promise_p5", "promise_p6", "promise_p7", "promise_p8",
+]
+addopts = "-q --strict-markers"
+filterwarnings = ["error::DeprecationWarning:readyreply.*"]
+
+[tool.coverage.run]
+source = ["readyreply"]
+branch = true
+omit = ["readyreply/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "\\.\\.\\.$", "raise NotImplementedError"]
