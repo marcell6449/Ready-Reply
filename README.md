@@ -35,7 +35,7 @@ Keep the black window open while you use Ready Reply. Close it to stop the progr
 
 > **Windows firewall:** the first time, Windows may ask whether to allow access. Choose **Allow** on private networks, so phones on your Wi-Fi can connect.
 
-**Linux or macOS:** unzip, then run `./start.sh` in a terminal. It needs Python 3.12 or newer.
+**Linux or macOS:** unzip, then run `./start.sh` in a terminal. It needs Python 3.12 or newer (on Debian/Ubuntu also `sudo apt install python3-venv`). On macOS the first run downloads the libraries from the internet. Press `Ctrl+C` in the terminal to stop it.
 
 ## Use
 
@@ -71,15 +71,19 @@ Ready Reply works fully without AI. To get suggestions for unanswered questions,
 
 **Does it send messages for me?** No. It does not connect to WhatsApp or Meta. You paste the text yourself, so there are no API costs and no risk to your number.
 
-**Where is my data?** In `data\readyreply.db`, inside the program folder. To back up, copy that file while the program is closed.
+**Where is my data?** In the `data` folder inside the program folder. To back up, close the program and copy the whole `data` folder. To restore, close the program and put the folder back.
 
 **Can several people use it at the same time?** Yes. Each person opens it from their phone or computer on the same Wi-Fi and signs in with their own account.
+
+**Is the Wi-Fi connection encrypted?** No. Phones connect over plain HTTP on your local network, like most devices in a shop (printers, card terminals' setup pages). Use a Wi-Fi network with a password that only your team knows, not an open guest network. If no phones need access, set `RR_HOST=127.0.0.1` in `.env` so only this computer can open it.
+
+**Who can create the administrator?** The first person who opens the app after installing. The browser opens automatically on the computer right after the first start, so create the administrator immediately.
 
 **The phone cannot open the address.** Check that the phone is on the same Wi-Fi as the computer, that the black window is open, and that the Windows firewall allows Ready Reply on private networks.
 
 **I forgot the administrator password.** Another administrator can set a new one in **Users**. If there is no other administrator, close the program and rename `data\readyreply.db`. The next start creates a new, empty library. Your old data stays in the renamed file.
 
-**Port 8000 is busy.** Ready Reply automatically uses the next free port (8001, 8002…) and opens it.
+**Port 8000 is busy.** Ready Reply automatically uses the next free port (8001 up to 8010) and opens it. To choose another port, set `RR_PORT` in `.env`.
 
 **How do I switch to English?** Click **EN** at the top. To change the default for everyone, set `RR_LOCALE=en` in `.env`.
 

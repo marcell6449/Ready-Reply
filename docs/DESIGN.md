@@ -22,7 +22,7 @@ Status: **DRAFT for review.** No production code is written until this document 
 
 | # | Decision | Why |
 |---|----------|-----|
-| D1 | Python 3.12+, FastAPI, SQLAlchemy 2, Alembic, SQLite in WAL mode | Required stack. WAL plus `busy_timeout` handles several phones on the same Wi-Fi. |
+| D1 | Python 3.12+, FastAPI, SQLAlchemy 2, Alembic, SQLite with a rollback journal and `busy_timeout` | Required stack. A rollback journal (instead of WAL) keeps every commit inside `readyreply.db`, so copying the `data` folder is always a complete backup (QA-14). Writes are short, so several phones are fine. |
 | D2 | Frontend: plain HTML, CSS and JS modules served by FastAPI. No CDN and no inline scripts. | Works offline. A strict CSP (`default-src 'self'`) enforces P7 and blocks XSS. |
 | D3 | Search runs in memory over a per-business index. The index is rebuilt when answers or synonyms change. | 1,000 answers fit easily in memory, and the P8 target is < 200 ms. |
 | D4 | Fuzzy matching runs over the **vocabulary** (unique tokens), not over every answer. Edit distance is computed by `rapidfuzz` (MIT, prebuilt Windows wheels), injected into the domain through a Protocol. | Keeps the domain pure and makes typo tolerance cheap: about 3,000 tokens instead of 30,000. |
@@ -76,7 +76,7 @@ Status: **DRAFT for review.** No production code is written until this document 
 ```
 
 Dependency rule: arrows point inward. The domain imports nothing from other layers.
-`readyreply/main.py` is the **composition root**. It is the only place that wires concrete
+`readyreply/container.py` is the **composition root**. It is the only place that wires concrete
 classes to ports. For AI, it reads `RR_AI_PROVIDER` and picks the provider from the registry.
 
 ### 3.1 Where the AI lives (one suggestion, end to end)
@@ -179,11 +179,11 @@ Every persisted entity carries `business_id`.
    - synonym: 0.9
    - prefix (≥ 3 chars): 0.75
    - fuzzy: 0.6
-3. Fuzzy uses Damerau–Levenshtein. The allowed distance grows with token length: 0 edits for ≤ 3 chars, 1 edit for 4–7 chars, 2 edits for ≥ 8 chars.
+3. Fuzzy uses OSA (optimal string alignment, the restricted Damerau–Levenshtein distance). The allowed distance grows with token length: 0 edits for ≤ 3 chars, 1 edit for 4–7 chars, 2 edits for ≥ 8 chars.
 4. Field weights are title 3.0, tags 2.5, category 1.5 and body 1.0. Each answer's score is the sum over query tokens of the best field-weighted match.
 5. A coverage bonus rewards answers that match more of the query tokens.
 6. Results scoring below `MIN_SCORE` are dropped. Ties are sorted by copy count, then by title.
-7. An empty query lists answers by copy count, then title.
+7. An empty query, or one made only of stop words ("hola buenas"), lists the 50 most copied answers, then by title. The list is capped at 50 so phones stay fast; search finds the rest.
 8. New strategies are added by implementing `Scorer` and registering them. The engine itself never changes (Open/Closed).
 
 All numeric thresholds are named constants in `search/scoring_config.py`. They are tuned
@@ -280,6 +280,10 @@ Errors always look like `{"code": "answer.title_taken", "details": {...}}`.
 
 ## 10. Security and privacy
 
+- **Request guard (ASGI, before the app reads anything):** rejects Host headers that are not an IP address, `localhost`, a single-label computer name, `*.local` or `RR_ALLOWED_HOSTS` (blocks DNS rebinding), and reads at most `RR_MAX_REQUEST_BYTES` of any body (2 × `RR_MAX_CSV_BYTES` for CSV import).
+- **Login:** exactly one Argon2 check for every outcome (unknown, inactive, wrong or right password), so timing does not reveal accounts. Locked after 5 failures per username or 20 per address in 5 minutes.
+- **Accepted risks (documented in the README FAQ):** the local Wi-Fi connection is plain HTTP, and the first person to open a fresh install creates the administrator. The browser opens on the computer immediately after the first start.
+
 - **SQL:** all queries go through the SQLAlchemy ORM or Core with bound parameters. No string-built SQL.
 - **Headers:** `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`.
 - **Logs:** method, path (without query string), status and duration only. Never bodies, cookies, passwords, search text or API keys. A test checks this.
@@ -293,7 +297,7 @@ Errors always look like `{"code": "answer.title_taken", "details": {...}}`.
 
 ## 11. Path to SaaS (not built in v1)
 
-1. **Tenancy:** `business_id` is already on every table and every repository method takes it. Replace `SingleBusinessResolver` with one that reads the tenant from the subdomain or session. Tests already check that one business can't read another's rows.
+1. **Tenancy:** `business_id` is already on every table and every repository method takes it. The `BusinessResolver` port is implemented by `infrastructure/tenancy.py::SingleBusinessResolver`; replace it with one that reads the tenant from the subdomain or session. `tests/integration/test_repositories.py` checks that no repository returns another business's rows. Tests already check that one business can't read another's rows.
 2. **Database:** set `RR_DATABASE_URL=postgresql+psycopg://...`. The upsert is wrapped inside the repository implementation, so it's the only place that changes. Alembic migrations stay dialect-neutral.
 3. **Search:** the in-memory index sits behind `SearchIndexProvider`. For SaaS, add a PostgreSQL `pg_trgm` or a cached implementation. Use cases don't change.
 4. **Sessions:** they're already in the database, so several app instances work.

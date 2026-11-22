@@ -1,4 +1,8 @@
-"""Database engine with SQLite settings for several devices on the same Wi-Fi."""
+"""Database engine with SQLite settings for several devices on the same Wi-Fi.
+
+Writes from several phones are serialized by SQLite; busy_timeout makes them wait
+instead of failing.
+"""
 
 from typing import Any
 
@@ -11,7 +15,9 @@ SQLITE_BUSY_TIMEOUT_MS = 5000
 def _configure_sqlite(dbapi_connection: Any, _record: Any) -> None:
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.execute("PRAGMA journal_mode=WAL")
+    # A rollback journal (not WAL) keeps every commit inside readyreply.db, so copying that
+    # one file is a complete backup even if the window was closed without a clean shutdown.
+    cursor.execute("PRAGMA journal_mode=DELETE")
     cursor.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
     cursor.close()
 

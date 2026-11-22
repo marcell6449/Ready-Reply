@@ -37,7 +37,7 @@ Status: **DRAFT for review.**
 | F2-04 | an answer titled "Horario" exists | the admin creates "horário" or " HORARIO " | it is rejected with `answer.title_taken` |
 | F2-05 | an answer exists | the admin edits it | `updated_at` changes and search reflects the new text immediately |
 | F2-06 | an answer with copy history | the admin deletes it and confirms | it disappears from the list, search and stats |
-| F2-07 | answer "Horario" | the admin duplicates it | "Horario (copy)" is created. Duplicating again creates "Horario (copy 2)". |
+| F2-07 | answer "Horario" | the admin duplicates it | "Horario (copia)" is created (the word follows the language). Duplicating again creates "Horario (copia 2)". |
 | F2-08 | staff is logged in | staff tries to create, edit, delete or duplicate | the response is 403 and nothing changes |
 | F2-09 | the admin double-clicks **Save** on a new answer | — | exactly one answer is created. The button is disabled while saving, and the server also rejects the duplicate title. |
 | F2-10 | an answer id that doesn't exist, or belongs to another `business_id` | it is edited or deleted | the response is 404 `answer.not_found` |
@@ -57,7 +57,7 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | F3-05 | the fixture | the user searches `sinpe` or `simpe` | the SINPE answer is first |
 | F3-06 | the fixture | the user searches `hor` (prefix) | "Horario" appears in the results |
 | F3-07 | the fixture | the user searches `xyzzy` | no results |
-| F3-08 | the fixture | the user searches an empty or whitespace-only string | all answers, ordered by copy count then title |
+| F3-08 | the fixture | the user searches an empty or whitespace-only string, or only stop words | the answers ordered by copy count then title (at most 50) |
 | F3-09 | the fixture | the user searches `🍔` or `!!!` | no error. The result is the same as an empty query. |
 | F3-10 | the fixture | the user searches `' OR 1=1 --` or `%` or `_` | no error and no extra results (the input is treated as plain text) |
 | F3-11 | a query of 500 chars | it is searched | the response is 200 within the P8 limit. Queries are cut to 200 chars. |
@@ -132,12 +132,12 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | F6-04 | the user table | it is inspected | it stores only Argon2id hashes (`$argon2id$...`), never the plain password |
 | F6-05 | valid credentials | the user logs in | the session cookie is `HttpOnly`, `SameSite=Strict` and `Path=/` |
 | F6-06 | wrong credentials | the user logs in | the response is 401 `auth.invalid_credentials` and does not reveal whether the username exists |
-| F6-07 | 5 failed logins for one user within 5 minutes | a sixth attempt is made | the response is 429 `auth.too_many_attempts` |
+| F6-07 | 5 failed logins for one user within 5 minutes (from any device), or 20 from one address | a further attempt is made | the response is 429 `auth.too_many_attempts` |
 | F6-08 | a session idle longer than `RR_SESSION_HOURS` | any request is made | the response is 401 `auth.session_expired` |
 | F6-09 | the user logs out | the old cookie is reused | the response is 401 |
 | F6-10 | a state-changing request without a valid `X-CSRF-Token`, or with a foreign `Origin` | it is sent | the response is 403 `auth.csrf_failed` |
 | F6-11 | staff | they call any admin-only endpoint | the response is 403 |
-| F6-12 | the only active admin | they try to demote or deactivate themselves | it is rejected with `user.last_admin` |
+| F6-12 | the only active admin | they try to demote or deactivate themselves | it is rejected with 409 `user.last_admin` |
 | F6-13 | a deactivated user | they log in, or use an existing session | the response is 401 |
 | F6-14 | a username `"  Ana "` exists as `ana` | someone creates `ANA` | it is rejected with `user.username_taken` |
 
@@ -179,7 +179,7 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | F8-04 | `RR_AI_PROVIDER=manual` | the admin clicks Suggest | a prompt with the business variables and the question is shown with a **Copy prompt** button and a paste field. If `RR_AI_CHAT_URL` is set, it opens in a new tab. |
 | F8-05 | `RR_AI_PROVIDER=openai_compatible` with an API key in `.env` | the admin clicks Suggest | a draft fills the editable field |
 | F8-06 | Ollama isn't installed or running, the model isn't pulled, the provider errors, or it exceeds `RR_AI_TIMEOUT_SECONDS` | the admin clicks Suggest | a message `ai.unavailable` explains how to install Ollama, and the app falls back to the manual flow (F8-04) |
-| F8-07 | the prompt | it is built | it contains only variables, existing answer titles and the question, and asks for a reply in the UI language. It never contains user names, passwords or stats. |
+| F8-07 | the prompt | it is built | it contains only variables, existing answer titles and the question, and asks for a reply in the language the user chose in the UI. It never contains user names, passwords or stats. |
 | F8-08 | a new provider class registered in the composition root | the app starts with it configured | it is used, and no other module was modified (checked in the architecture docs and a test with a fake provider) |
 | F8-09 | staff | they call `/api/ai/suggest` | the response is 403 |
 | F8-10 | the API key | the logs are inspected | the key never appears |
