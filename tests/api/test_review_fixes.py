@@ -1,5 +1,6 @@
 """Tests written first for the code-review findings (docs/REVIEW.md)."""
 
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
@@ -88,3 +89,46 @@ def test_r23_last_admin_is_a_conflict(admin: Api) -> None:
     (me,) = admin.get("/api/users").json()
     response = admin.put(f"/api/users/{me['id']}", json={"role": "staff", "active": True})
     assert (response.status_code, response.json()["code"]) == (409, "user.last_admin")
+
+
+def test_r02_large_json_body_rejected_before_parsing(anon: Api) -> None:
+    huge = b'{"username": "' + b"a" * (2 * 1024 * 1024) + b'", "password": "x"}'
+    response = anon.client.post(
+        "/api/auth/login", content=huge, headers={"content-type": "application/json"}
+    )
+    assert (response.status_code, response.json()["code"]) == (413, "request.too_large")
+
+
+def test_r02_large_chunked_body_rejected(anon: Api) -> None:
+    def chunks() -> Iterator[bytes]:
+        for _ in range(40):
+            yield b"x" * 65536
+
+    response = anon.client.post("/api/setup", content=chunks())
+    assert response.status_code == 413
+
+
+def test_r02_csv_upload_keeps_its_own_limit(admin: Api) -> None:
+    rows = b"".join(b"T%d,,%s,\n" % (i, b"b" * 1000) for i in range(900))
+    data = b"title,category,body,tags\n" + rows
+    assert 512 * 1024 < len(data) < 1024 * 1024
+    response = admin.post("/api/csv/import", content=data)
+    assert (response.status_code, response.json()["imported"]) == (200, 900)
+
+
+@pytest.mark.parametrize("host", ["evil.example", "attacker.com:8000", "x.y.z"])
+def test_r04_foreign_host_header_is_rejected(anon: Api, host: str) -> None:
+    response = anon.client.get("/api/setup/status", headers={"host": host})
+    assert (response.status_code, response.json()["code"]) == (421, "request.bad_host")
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["127.0.0.1:8000", "localhost:8000", "192.168.1.20:8000", "[::1]:8000", "mi-pc", "mi-pc.local"],
+)
+def test_r04_local_hosts_are_allowed(anon: Api, host: str) -> None:
+    assert anon.client.get("/api/setup/status", headers={"host": host}).status_code == 200
+
+
+def test_qa05_long_pasted_query_is_cut_not_rejected(admin: Api) -> None:
+    assert admin.get("/api/search", params={"q": "horario " * 1000}).status_code == 200

@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from readyreply.api.errors import register_error_handlers
+from readyreply.api.request_guard import RequestGuard
 from readyreply.api.routers import activity, admin, auth, content
 from readyreply.api.security import install_http_security
 from readyreply.config import Settings
@@ -21,6 +22,22 @@ STATIC_DIR = Path(__file__).parent / "web" / "static"
 def prepare_database(container: Container) -> None:
     upgrade_to_latest(container.settings.database_url)
     container.bootstrap.execute()
+
+
+CSV_IMPORT_PATH = "/api/csv/import"
+CSV_BODY_FACTOR = 2  # the CSV route reports its own exact limit; the guard stops abuse
+
+
+def _install_request_guard(app: FastAPI, settings: Settings) -> None:
+    extra_hosts = frozenset(
+        h.strip().lower() for h in settings.allowed_hosts.split(",") if h.strip()
+    )
+    app.add_middleware(
+        RequestGuard,
+        default_limit=settings.max_request_bytes,
+        path_limits={CSV_IMPORT_PATH: settings.max_csv_bytes * CSV_BODY_FACTOR},
+        extra_hosts=extra_hosts,
+    )
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -37,6 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.container = container
     register_error_handlers(app)
     install_http_security(app)
+    _install_request_guard(app, container.settings)
     for router in (auth.router, content.router, activity.router, admin.router):
         app.include_router(router)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

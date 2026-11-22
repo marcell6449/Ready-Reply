@@ -1,8 +1,8 @@
 """F3-02, F3-09: normalization used by search."""
 
-import pytest
-
 import unicodedata
+
+import pytest
 
 from readyreply.domain.text import clean_text, is_blank, normalize, tokenize
 
@@ -36,7 +36,7 @@ def test_tokenize_empty() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("Hora​rio", "Horario"),
+        ("Hora\u200brio", "Horario"),
         ("Hor⁠ario", "Horario"),
         ("Ho­rario", "Horario"),
         ("a\x00b\x07c", "abc"),
@@ -50,7 +50,7 @@ def test_clean_text(raw: str, expected: str) -> None:
     assert clean_text(raw) == expected
 
 
-@pytest.mark.parametrize("raw", ["", "  ", "​‌‍", "⁠", "­", "\n\t"])
+@pytest.mark.parametrize("raw", ["", "  ", "\u200b‌‍", "⁠", "­", "\n\t"])
 def test_is_blank(raw: str) -> None:
     assert is_blank(clean_text(raw))
 
@@ -60,4 +60,4 @@ def test_not_blank() -> None:
 
 
 def test_normalize_drops_invisible_characters() -> None:
-    assert normalize("Hora​rio") == "horario"
+    assert normalize("Hora\u200brio") == "horario"

@@ -108,7 +108,7 @@ def test_symbol_only_titles_have_distinct_keys() -> None:
 
 def test_invisible_only_title_is_required() -> None:
     with pytest.raises(InvalidInputError) as error:
-        draft(title="​‍").cleaned()
+        draft(title="\u200b‍").cleaned()
     assert error.value.code == "answer.title_required"
 
 

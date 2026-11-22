@@ -64,7 +64,7 @@ def copy_answer(answer_id: int, actor: ActorDep, container: ContainerDep) -> Ren
 
 @router.get("/search")
 def search(
-    actor: ActorDep, container: ContainerDep, q: str = Query(default="", max_length=2000)
+    actor: ActorDep, container: ContainerDep, q: str = Query(default="")
 ) -> list[SearchResultOut]:
     results = container.content.search.execute(actor, q[:MAX_QUERY_CHARS])
     return [SearchResultOut.of(result) for result in results]
