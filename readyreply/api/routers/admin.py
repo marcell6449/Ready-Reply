@@ -16,7 +16,6 @@ from readyreply.api.schemas import (
 from readyreply.application.users import UserChanges
 from readyreply.domain.errors import PayloadTooLargeError
 from readyreply.domain.permissions import Action
-from readyreply.infrastructure.network.lan import lan_ip, qr_svg
 
 router = APIRouter(prefix="/api")
 CSV_FILENAME = "ready-reply-answers.csv"
@@ -86,18 +85,16 @@ def load_demo(kind: str, body: DemoIn, actor: ActorDep, container: ContainerDep)
     return DemoOut(loaded=loaders[body.mode](actor, kind))
 
 
-def _phone_url(request: Request) -> str:
-    port = request.url.port or 80
-    return f"http://{lan_ip()}:{port}/"
+HTTP_DEFAULT_PORT = 80
 
 
 @router.get("/system/lan")
-def lan_address(request: Request, actor: ActorDep) -> LanOut:
-    actor.require(Action.VIEW_SYSTEM)
-    return LanOut(url=_phone_url(request))
+def lan_address(request: Request, actor: ActorDep, container: ContainerDep) -> LanOut:
+    port = request.url.port or HTTP_DEFAULT_PORT
+    return LanOut(url=container.admin.phone_access.url(actor, port))
 
 
 @router.get("/system/qr.svg")
-def lan_qr(request: Request, actor: ActorDep) -> Response:
-    actor.require(Action.VIEW_SYSTEM)
-    return Response(qr_svg(_phone_url(request)), media_type="image/svg+xml")
+def lan_qr(request: Request, actor: ActorDep, container: ContainerDep) -> Response:
+    svg = container.admin.phone_access.qr(actor, request.url.port or HTTP_DEFAULT_PORT)
+    return Response(svg, media_type="image/svg+xml")

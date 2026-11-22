@@ -7,12 +7,16 @@ from pydantic import BaseModel, Field
 
 from readyreply.application.search import SearchResult
 from readyreply.domain.answers import Answer, AnswerDraft
+from readyreply.domain.errors import persisted_id
 from readyreply.domain.unanswered import UnansweredQuestion
 from readyreply.domain.users import Role, User
 from readyreply.domain.variables import Variable
 
 SHORT = 200
 LONG = 10_000
+TITLE_INPUT_MAX = SHORT * 2
+"""Input caps only stop abuse; the domain applies the real limits (e.g. TITLE_MAX)."""
+MAX_TAG_INPUTS = 100
 
 
 class Credentials(BaseModel):
@@ -30,6 +34,7 @@ class SetupStatusOut(BaseModel):
     needs_setup: bool
     csrf_token: str
     locale: str
+    demo_kinds: list[str]
 
 
 class VariableIO(BaseModel):
@@ -49,10 +54,10 @@ class VariableIO(BaseModel):
 
 
 class AnswerIn(BaseModel):
-    title: str = Field(max_length=SHORT * 2)
+    title: str = Field(max_length=TITLE_INPUT_MAX)
     category: str = Field(default="", max_length=SHORT)
     body: str = Field(max_length=LONG)
-    tags: list[str] = Field(default_factory=list, max_length=100)
+    tags: list[str] = Field(default_factory=list, max_length=MAX_TAG_INPUTS)
 
     def to_draft(self) -> AnswerDraft:
         return AnswerDraft(self.title, self.category, self.body, tuple(self.tags))
@@ -69,7 +74,7 @@ class AnswerOut(BaseModel):
     @classmethod
     def of(cls, answer: Answer) -> "AnswerOut":
         return cls(
-            id=answer.id or 0,
+            id=persisted_id(answer.id),
             title=answer.title,
             category=answer.category,
             body=answer.body,
@@ -148,7 +153,9 @@ class UserOut(BaseModel):
 
     @classmethod
     def of(cls, user: User) -> "UserOut":
-        return cls(id=user.id or 0, username=user.username, role=user.role, active=user.active)
+        return cls(
+            id=persisted_id(user.id), username=user.username, role=user.role, active=user.active
+        )
 
 
 class RejectedRowOut(BaseModel):

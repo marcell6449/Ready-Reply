@@ -7,7 +7,7 @@ import { renderLogin, renderSetup } from "./views/auth.js";
 import { renderBusiness } from "./views/business.js";
 import { renderData } from "./views/data.js";
 import { renderPhone } from "./views/phone.js";
-import { onQueryInput, recordNow, renderSearch } from "./views/search.js";
+import { onQueryInput, recordNow, renderSearch, searchNow } from "./views/search.js";
 import { renderStats } from "./views/stats.js";
 import { renderSynonyms } from "./views/synonyms.js";
 import { renderUnanswered } from "./views/unanswered.js";
@@ -106,7 +106,7 @@ function wireSearchBar() {
   });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") recordNow();
-    if (event.key === "Escape") { input.value = ""; onQueryInput("", { immediate: true }); }
+    if (event.key === "Escape") { input.value = ""; searchNow(""); }
   });
 }
 
@@ -148,6 +148,7 @@ function restoreLargeText() {
 async function boot() {
   restoreLargeText();
   const status = await api.get("/api/setup/status");
+  state.demoKinds = status.demo_kinds;
   await loadTranslations(status.locale);
   setCsrf(status.csrf_token);
   applyChromeTexts();

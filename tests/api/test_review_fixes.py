@@ -159,3 +159,56 @@ def test_qa12_prompt_language_follows_the_request(admin: Api) -> None:
     spanish = admin.post("/api/ai/suggest", json={"question_id": question["id"]})
     assert "English" in english.json()["prompt"]
     assert "español" in spanish.json()["prompt"]
+
+
+def test_r08_phone_access_is_a_use_case() -> None:
+    from readyreply.application.system import GetPhoneAccess
+    from readyreply.application.context import Actor
+    from readyreply.domain.errors import ForbiddenError
+    from readyreply.domain.users import Role
+
+    class FakeNetwork:
+        def local_address(self) -> str:
+            return "192.168.1.5"
+
+        def qr_svg(self, text: str) -> bytes:
+            return text.encode()
+
+    access = GetPhoneAccess(FakeNetwork())
+    admin = Actor(1, 1, Role.ADMIN, "a")
+    assert access.url(admin, 8000) == "http://192.168.1.5:8000/"
+    assert access.qr(admin, 8000) == b"http://192.168.1.5:8000/"
+    with pytest.raises(ForbiddenError):
+        access.url(Actor(2, 1, Role.STAFF, "s"), 8000)
+
+
+def test_r07_business_comes_from_a_resolver() -> None:
+    from readyreply.application.ports import BusinessResolver
+    from readyreply.infrastructure.tenancy import SingleBusinessResolver
+
+    resolver: BusinessResolver = SingleBusinessResolver()
+    assert resolver.current() == 1
+
+
+def test_r14_rejected_row_numbers_match_the_file_lines(admin: Api) -> None:
+    data = 'title,category,body,tags\nUno,,"línea 1\nlínea 2",\n\n,,sin título,\n'.encode()
+    report = admin.post("/api/csv/import", content=data).json()
+    assert report["rejected"] == [{"line": 5, "code": "answer.title_required"}]
+
+
+def test_r26_integrity_error_fails_only_its_own_row(
+    admin: Api, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from readyreply.infrastructure.db.repositories.content import SqlAnswerRepository
+
+    original = SqlAnswerRepository.title_taken
+
+    def racy_title_taken(
+        self: SqlAnswerRepository, business_id: int, key: str, exclude: int | None
+    ) -> bool:
+        return False if key == "dos" else original(self, business_id, key, exclude)
+
+    monkeypatch.setattr(SqlAnswerRepository, "title_taken", racy_title_taken)
+    data = b"title,category,body,tags\nDos,,a,\ndos,,b,\nTres,,c,\n"
+    report = admin.post("/api/csv/import", content=data).json()
+    assert report == {"imported": 2, "rejected": [{"line": 3, "code": "answer.title_taken"}]}

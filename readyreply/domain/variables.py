@@ -8,7 +8,8 @@ from readyreply.domain.errors import InvalidInputError
 from readyreply.domain.templates import KEY_PATTERN
 from readyreply.domain.text import clean_text, is_blank
 
-BUILTIN_KEYS = ("name", "hours", "address", "sinpe", "phone", "prices")
+BUSINESS_NAME_KEY = "name"
+BUILTIN_KEYS = (BUSINESS_NAME_KEY, "hours", "address", "sinpe", "phone", "prices")
 VALUE_MAX = 2000
 LABEL_MAX = 60
 _KEY = re.compile(rf"^{KEY_PATTERN}$")

@@ -3,9 +3,8 @@
 from dataclasses import dataclass
 from typing import Protocol
 
-from readyreply.application.answers import CreateAnswer
 from readyreply.application.context import Actor
-from readyreply.application.ports import UnitOfWork, UnitOfWorkFactory
+from readyreply.application.ports import AnswerWriter, UnitOfWork, UnitOfWorkFactory
 from readyreply.domain.answers import AnswerDraft
 from readyreply.domain.errors import ConflictError
 from readyreply.domain.permissions import Action
@@ -29,11 +28,14 @@ class DemoCatalog(Protocol):
 
 class LoadDemo:
     def __init__(
-        self, uow_factory: UnitOfWorkFactory, catalog: DemoCatalog, create: CreateAnswer
+        self, uow_factory: UnitOfWorkFactory, catalog: DemoCatalog, create: AnswerWriter
     ) -> None:
         self._uow_factory = uow_factory
         self._catalog = catalog
         self._create = create
+
+    def kinds(self) -> tuple[str, ...]:
+        return self._catalog.kinds()
 
     def into_empty_library(self, actor: Actor, kind: str) -> int:
         actor.require(Action.LOAD_DEMO)

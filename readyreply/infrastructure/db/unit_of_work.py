@@ -1,5 +1,7 @@
 """SQLAlchemy implementation of the UnitOfWork port."""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from types import TracebackType
 from typing import Self
 
@@ -58,6 +60,11 @@ class SqlUnitOfWork:
 
     def commit(self) -> None:
         self._session.commit()
+
+    @contextmanager
+    def savepoint(self) -> Iterator[None]:
+        with self._session.begin_nested():
+            yield
 
     def __exit__(
         self,

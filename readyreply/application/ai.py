@@ -19,7 +19,7 @@ from readyreply.domain.ai import (
     clean_draft,
 )
 from readyreply.domain.permissions import Action
-from readyreply.domain.variables import Variable
+from readyreply.domain.variables import BUSINESS_NAME_KEY, Variable
 
 logger = logging.getLogger(__name__)
 UNAVAILABLE_NOTICE = "ai.unavailable"
@@ -75,7 +75,7 @@ class SuggestAnswer:
             stored = uow.variables.list_all(actor.business_id)
             variables = tuple(_labelled(v, settings.builtin_labels) for v in stored)
             titles = tuple(answer.title for answer in uow.answers.list_all(actor.business_id))
-        names = [variable.value for variable in variables if variable.key == "name"]
+        names = [variable.value for variable in variables if variable.key == BUSINESS_NAME_KEY]
         return SuggestionRequest(
             question=question.sample_text,
             business_name=names[0] if names else "",

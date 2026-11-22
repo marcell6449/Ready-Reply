@@ -1,9 +1,9 @@
 """Questions with no answer yet (F5, P4)."""
 
-from readyreply.application.answers import CreateAnswer
 from readyreply.application.context import Actor
-from readyreply.application.ports import Clock, RepeatGuard, UnitOfWorkFactory
+from readyreply.application.ports import AnswerWriter, Clock, RepeatGuard, UnitOfWorkFactory
 from readyreply.domain.answers import Answer, AnswerDraft
+from readyreply.domain.errors import persisted_id
 from readyreply.domain.permissions import Action
 from readyreply.domain.sessions import UNANSWERED_REPEAT_WINDOW
 from readyreply.domain.unanswered import QuestionKeyer, UnansweredQuestion, sample_text
@@ -60,7 +60,7 @@ class DismissUnanswered:
 class AnswerQuestion:
     """Create an answer for an unanswered question and mark it resolved, in one transaction."""
 
-    def __init__(self, uow_factory: UnitOfWorkFactory, create: CreateAnswer) -> None:
+    def __init__(self, uow_factory: UnitOfWorkFactory, create: AnswerWriter) -> None:
         self._uow_factory = uow_factory
         self._create = create
 
@@ -69,7 +69,7 @@ class AnswerQuestion:
         with self._uow_factory() as uow:
             uow.unanswered.get_open(actor.business_id, question_id)
             answer = self._create.add_within(uow, actor, draft)
-            if answer.id is not None:
-                uow.unanswered.resolve(actor.business_id, question_id, answer.id)
+            uow.unanswered.resolve(actor.business_id, question_id, persisted_id(answer.id))
+            uow.businesses.bump_revision(actor.business_id)
             uow.commit()
             return answer

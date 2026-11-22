@@ -23,7 +23,18 @@ def lan_ip() -> str:
     return address
 
 
+QR_BORDER = 2
+
+
 def qr_svg(text: str) -> bytes:
     buffer = io.BytesIO()
-    segno.make(text, error="m").save(buffer, kind="svg", scale=QR_SCALE, border=2)
+    segno.make(text, error="m").save(buffer, kind="svg", scale=QR_SCALE, border=QR_BORDER)
     return buffer.getvalue()
+
+
+class LocalNetwork:
+    def local_address(self) -> str:
+        return lan_ip()
+
+    def qr_svg(self, text: str) -> bytes:
+        return qr_svg(text)

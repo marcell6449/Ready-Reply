@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from readyreply.application.context import Actor
 from readyreply.application.ports import (
+    BusinessResolver,
     Clock,
     LoginFailureLog,
     PasswordHasher,
@@ -14,11 +15,14 @@ from readyreply.application.ports import (
     UnitOfWork,
     UnitOfWorkFactory,
 )
-from readyreply.domain.errors import ConflictError, TooManyAttemptsError, UnauthenticatedError
+from readyreply.domain.errors import (
+    ConflictError,
+    TooManyAttemptsError,
+    UnauthenticatedError,
+    persisted_id,
+)
 from readyreply.domain.sessions import ADDRESS_MAX_FAILURES, Session, is_login_locked
 from readyreply.domain.users import Role, User, clean_username, validate_password
-
-BUSINESS_ID = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,9 +41,7 @@ class AuthenticatedSession:
 
 
 def actor_for(user: User) -> Actor:
-    if user.id is None:
-        raise UnauthenticatedError("auth.required")
-    return Actor(user.id, user.business_id, user.role, user.username)
+    return Actor(persisted_id(user.id), user.business_id, user.role, user.username)
 
 
 class SessionStarter:
@@ -51,7 +53,7 @@ class SessionStarter:
     def start(self, uow: UnitOfWork, user: User) -> NewSession:
         actor = actor_for(user)
         token = self._tokens.new_token()
-        csrf_token = secrets.token_urlsafe(32)
+        csrf_token = self._tokens.new_token()
         expires_at = self._clock.now() + self._ttl
         session = Session(
             token_hash=self._tokens.hash_token(token),
@@ -64,22 +66,36 @@ class SessionStarter:
         return NewSession(token, csrf_token, actor)
 
 
-class NeedsSetup:
-    def __init__(self, uow_factory: UnitOfWorkFactory) -> None:
-        self._uow_factory = uow_factory
+@dataclass(frozen=True, slots=True)
+class SetupStatus:
+    needs_setup: bool
+    csrf_token: str
+    """A token for the pre-session double-submit check (login and setup)."""
 
-    def execute(self) -> bool:
+
+class GetSetupStatus:
+    def __init__(self, uow_factory: UnitOfWorkFactory, tokens: TokenService) -> None:
+        self._uow_factory = uow_factory
+        self._tokens = tokens
+
+    def execute(self) -> SetupStatus:
         with self._uow_factory() as uow:
-            return not uow.users.any_exists()
+            needs_setup = not uow.users.any_exists()
+        return SetupStatus(needs_setup, self._tokens.new_token())
 
 
 class SetupFirstAdmin:
     def __init__(
-        self, uow_factory: UnitOfWorkFactory, hasher: PasswordHasher, starter: SessionStarter
+        self,
+        uow_factory: UnitOfWorkFactory,
+        hasher: PasswordHasher,
+        starter: SessionStarter,
+        business: BusinessResolver,
     ) -> None:
         self._uow_factory = uow_factory
         self._hasher = hasher
         self._starter = starter
+        self._business = business
         self._lock = threading.Lock()
 
     def execute(self, username: str, password: str) -> NewSession:
@@ -88,7 +104,8 @@ class SetupFirstAdmin:
         with self._lock, self._uow_factory() as uow:
             if uow.users.any_exists():
                 raise ConflictError("setup.already_done")
-            admin = User(None, BUSINESS_ID, clean, self._hasher.hash(password), Role.ADMIN, True)
+            password_hash = self._hasher.hash(password)
+            admin = User(None, self._business.current(), clean, password_hash, Role.ADMIN, True)
             new_session = self._starter.start(uow, uow.users.add(admin))
             uow.commit()
             return new_session
@@ -105,17 +122,20 @@ class Login:
 
     def __init__(
         self,
+        *,
         uow_factory: UnitOfWorkFactory,
         hasher: PasswordHasher,
         failures: LoginFailureLog,
         starter: SessionStarter,
         clock: Clock,
+        business: BusinessResolver,
     ) -> None:
         self._uow_factory = uow_factory
         self._hasher = hasher
         self._failures = failures
         self._starter = starter
         self._clock = clock
+        self._business = business
         self._decoy_hash = hasher.hash(secrets.token_urlsafe(16))
         self._lock = threading.Lock()
 
@@ -140,7 +160,7 @@ class Login:
             raise TooManyAttemptsError("auth.too_many_attempts")
 
     def _authenticate(self, uow: UnitOfWork, name: str, password: str, keys: _ThrottleKeys) -> User:
-        user = uow.users.find_by_username(BUSINESS_ID, name)
+        user = uow.users.find_by_username(self._business.current(), name)
         stored_hash = user.password_hash if user else self._decoy_hash
         password_ok = self._hasher.verify(stored_hash, password)
         if user is not None and user.active and password_ok:

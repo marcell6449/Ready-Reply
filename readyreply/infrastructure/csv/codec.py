@@ -4,6 +4,7 @@ import csv
 import io
 from collections.abc import Sequence
 
+from readyreply.application.ports import CsvRow
 from readyreply.domain.errors import InvalidInputError
 
 _BOM_ENCODING = "utf-8-sig"
@@ -27,21 +28,29 @@ def _delimiter(text: str) -> str:
     return max(_DELIMITERS, key=first_line.count)
 
 
+def _first_line(last_line: int, row: dict[str | None, object]) -> int:
+    """Quoted cells may span lines; report the line where the row starts."""
+    breaks = sum(cell.count("\n") for cell in row.values() if isinstance(cell, str))
+    return last_line - breaks
+
+
 def _is_blank(row: dict[str | None, object]) -> bool:
     return all(not (cell.strip() if isinstance(cell, str) else cell) for cell in row.values())
 
 
 class StandardCsvCodec:
-    def decode(self, data: bytes) -> tuple[list[str], list[dict[str, str]]]:
+    def decode(self, data: bytes) -> tuple[list[str], list[CsvRow]]:
         text = _decode_text(data)
         reader = csv.DictReader(
             io.StringIO(text, newline=""), delimiter=_delimiter(text), strict=True
         )
         try:
-            rows = [dict(row) for row in reader if not _is_blank(row)]
+            rows = [(_first_line(reader.line_num, row), dict(row)) for row in reader]
         except csv.Error as error:
             raise InvalidInputError("csv.malformed") from error
-        return list(reader.fieldnames or []), rows
+        return list(reader.fieldnames or []), [
+            (line, row) for line, row in rows if not _is_blank(row)
+        ]
 
     def encode(self, header: Sequence[str], rows: Sequence[Sequence[str]]) -> bytes:
         buffer = io.StringIO(newline="")

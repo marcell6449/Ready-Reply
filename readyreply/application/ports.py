@@ -1,12 +1,17 @@
 """Interfaces the use cases depend on. Infrastructure provides the implementations."""
 
 from collections.abc import Callable, Sequence
+from contextlib import AbstractContextManager
 from datetime import datetime, timedelta
 from types import TracebackType
-from typing import Protocol, Self
+from typing import TYPE_CHECKING, Protocol, Self
+
+if TYPE_CHECKING:
+    from readyreply.application.context import Actor
 
 from readyreply.domain.ai import SuggestionResult
-from readyreply.domain.answers import Answer
+from readyreply.domain.answers import Answer, AnswerDraft
+from readyreply.domain.search.index import SearchIndex
 from readyreply.domain.sessions import Session
 from readyreply.domain.synonyms import SynonymGroup
 from readyreply.domain.unanswered import UnansweredQuestion
@@ -93,6 +98,10 @@ class UnitOfWork(Protocol):
     sessions: SessionRepository
 
     def commit(self) -> None: ...
+    def savepoint(self) -> AbstractContextManager[None]:
+        """A nested transaction: an error inside rolls back only that part."""
+        ...
+
     def __enter__(self) -> Self: ...
     def __exit__(
         self,
@@ -119,6 +128,17 @@ class TokenService(Protocol):
     def hash_token(self, token: str) -> str: ...
 
 
+class BusinessResolver(Protocol):
+    """Which business the request belongs to (v1: always the single local business)."""
+
+    def current(self) -> int: ...
+
+
+class NetworkInfo(Protocol):
+    def local_address(self) -> str: ...
+    def qr_svg(self, text: str) -> bytes: ...
+
+
 class RepeatGuard(Protocol):
     """Remembers recent actions to ignore double clicks."""
 
@@ -139,12 +159,26 @@ class SuggestionProvider(Protocol):
     def suggest(self, prompt: str) -> SuggestionResult: ...
 
 
+CsvRow = tuple[int, dict[str, str]]
+"""The file line where the row starts, and its cells by column name."""
+
+
 class CsvCodec(Protocol):
-    def decode(self, data: bytes) -> tuple[list[str], list[dict[str, str]]]:
+    def decode(self, data: bytes) -> tuple[list[str], list[CsvRow]]:
         """Header and rows. Raises InvalidInputError for bad encoding or empty files."""
         ...
 
     def encode(self, header: Sequence[str], rows: Sequence[Sequence[str]]) -> bytes: ...
+
+
+class AnswerWriter(Protocol):
+    """Adds an answer inside a transaction the caller owns (and later commits)."""
+
+    def add_within(self, uow: UnitOfWork, actor: "Actor", draft: AnswerDraft) -> Answer: ...
+
+
+class SearchIndexProvider(Protocol):
+    def get(self, uow: UnitOfWork, business_id: int) -> tuple[SearchIndex, dict[int, Answer]]: ...
 
 
 class Texts(Protocol):

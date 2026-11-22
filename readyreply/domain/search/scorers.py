@@ -24,9 +24,9 @@ class EditDistance(Protocol):
 
 def allowed_edits(length: int) -> int:
     if length >= config.FUZZY_TWO_EDITS_MIN_CHARS:
-        return 2
+        return config.FUZZY_EDITS_LONG
     if length >= config.FUZZY_ONE_EDIT_MIN_CHARS:
-        return 1
+        return config.FUZZY_EDITS_SHORT
     return 0
 
 

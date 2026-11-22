@@ -16,12 +16,21 @@ from readyreply.application import (
     search,
     stats,
     synonyms,
+    system,
     unanswered,
     users,
     variables,
 )
 from readyreply.application.bootstrap import EnsureBusiness
-from readyreply.application.ports import UnitOfWorkFactory
+from readyreply.application.ports import (
+    BusinessResolver,
+    Clock,
+    PasswordHasher,
+    RepeatGuard,
+    Texts,
+    TokenService,
+    UnitOfWorkFactory,
+)
 from readyreply.config import LOCALES, Settings
 from readyreply.domain.ai import PromptTemplate
 from readyreply.domain.search.engine import SearchEngine
@@ -43,16 +52,18 @@ from readyreply.infrastructure.csv.codec import StandardCsvCodec
 from readyreply.infrastructure.db.engine import make_engine, make_session_factory
 from readyreply.infrastructure.db.unit_of_work import SqlUnitOfWork
 from readyreply.infrastructure.demo.catalog import JsonDemoCatalog
+from readyreply.infrastructure.network.lan import LocalNetwork
 from readyreply.infrastructure.search.distance import RapidfuzzDistance
 from readyreply.infrastructure.security.memory import MemoryLoginFailureLog, MemoryRepeatGuard
 from readyreply.infrastructure.security.passwords import Argon2PasswordHasher
 from readyreply.infrastructure.security.tokens import SecureTokenService
+from readyreply.infrastructure.tenancy import SingleBusinessResolver
 from readyreply.infrastructure.texts import TranslationTexts
 
 
 @dataclass(frozen=True)
 class AuthUseCases:
-    needs_setup: auth.NeedsSetup
+    setup_status: auth.GetSetupStatus
     setup: auth.SetupFirstAdmin
     login: auth.Login
     logout: auth.Logout
@@ -93,6 +104,7 @@ class AdminUseCases:
     export_csv: csv_transfer.ExportAnswers
     import_csv: csv_transfer.ImportAnswers
     load_demo: demo.LoadDemo
+    phone_access: system.GetPhoneAccess
 
 
 @dataclass(frozen=True)
@@ -107,7 +119,7 @@ class Container:
     admin: AdminUseCases
 
 
-def _prompt_settings(texts: TranslationTexts) -> ai.PromptSettings:
+def _prompt_settings(texts: Texts) -> ai.PromptSettings:
     template = PromptTemplate(
         intro=texts.text("server.ai.intro"),
         variables_heading=texts.text("server.ai.variables"),
@@ -125,14 +137,15 @@ class _Shared:
 
     settings: Settings
     uow: UnitOfWorkFactory
-    clock: SystemClock
-    texts: TranslationTexts
-    hasher: Argon2PasswordHasher
-    tokens: SecureTokenService
-    guard: MemoryRepeatGuard
+    clock: Clock
+    texts: Texts
+    hasher: PasswordHasher
+    tokens: TokenService
+    guard: RepeatGuard
     tokenizer: Tokenizer
     http_client: httpx.Client
     create_answer: answers.CreateAnswer
+    business: BusinessResolver
 
     @property
     def ttl(self) -> timedelta:
@@ -143,9 +156,16 @@ def _auth(shared: _Shared) -> AuthUseCases:
     starter = auth.SessionStarter(shared.tokens, shared.clock, shared.ttl)
     failures = MemoryLoginFailureLog()
     return AuthUseCases(
-        needs_setup=auth.NeedsSetup(shared.uow),
-        setup=auth.SetupFirstAdmin(shared.uow, shared.hasher, starter),
-        login=auth.Login(shared.uow, shared.hasher, failures, starter, shared.clock),
+        setup_status=auth.GetSetupStatus(shared.uow, shared.tokens),
+        setup=auth.SetupFirstAdmin(shared.uow, shared.hasher, starter, shared.business),
+        login=auth.Login(
+            uow_factory=shared.uow,
+            hasher=shared.hasher,
+            failures=failures,
+            starter=starter,
+            clock=shared.clock,
+            business=shared.business,
+        ),
         logout=auth.Logout(shared.uow, shared.tokens),
         resolve=auth.ResolveSession(shared.uow, shared.tokens, shared.clock, shared.ttl),
     )
@@ -211,18 +231,13 @@ def _admin(shared: _Shared) -> AdminUseCases:
         export_csv=csv_transfer.ExportAnswers(shared.uow, codec),
         import_csv=csv_transfer.ImportAnswers(shared.uow, codec, shared.create_answer, max_bytes),
         load_demo=demo.LoadDemo(shared.uow, JsonDemoCatalog(), shared.create_answer),
+        phone_access=system.GetPhoneAccess(LocalNetwork()),
     )
 
 
-def build_container(settings: Settings) -> Container:
-    engine = make_engine(settings.database_url)
-    session_factory = make_session_factory(engine)
-
-    def uow_factory() -> SqlUnitOfWork:
-        return SqlUnitOfWork(session_factory)
-
+def _shared(settings: Settings, uow_factory: UnitOfWorkFactory) -> _Shared:
     clock = SystemClock()
-    shared = _Shared(
+    return _Shared(
         settings=settings,
         uow=uow_factory,
         clock=clock,
@@ -233,12 +248,23 @@ def build_container(settings: Settings) -> Container:
         tokenizer=Tokenizer(STOP_WORDS),
         http_client=httpx.Client(timeout=settings.ai_timeout_seconds),
         create_answer=answers.CreateAnswer(uow_factory, clock),
+        business=SingleBusinessResolver(),
     )
+
+
+def build_container(settings: Settings) -> Container:
+    engine = make_engine(settings.database_url)
+    session_factory = make_session_factory(engine)
+
+    def uow_factory() -> SqlUnitOfWork:
+        return SqlUnitOfWork(session_factory)
+
+    shared = _shared(settings, uow_factory)
     return Container(
         settings=settings,
         engine=engine,
         http_client=shared.http_client,
-        bootstrap=EnsureBusiness(uow_factory, settings.locale),
+        bootstrap=EnsureBusiness(uow_factory, shared.business, settings.locale),
         auth=_auth(shared),
         content=_content(shared),
         activity=_activity(shared),

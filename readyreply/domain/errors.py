@@ -34,3 +34,13 @@ class ForbiddenError(DomainError):
 
 class TooManyAttemptsError(DomainError):
     """Too many failed logins in a short time."""
+
+
+class NotPersistedError(RuntimeError):
+    """An entity that should come from the database has no id: a programming error."""
+
+
+def persisted_id(entity_id: int | None) -> int:
+    if entity_id is None:
+        raise NotPersistedError("entity has no id")
+    return entity_id

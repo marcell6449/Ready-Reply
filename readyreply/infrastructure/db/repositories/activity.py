@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Session
 
@@ -48,7 +48,13 @@ class SqlUnansweredRepository:
             statement.on_conflict_do_update(
                 index_elements=["business_id", "key"],
                 set_={
-                    "times_searched": UnansweredRow.times_searched + 1,
+                    # A question that was answered and is searched again starts over.
+                    "times_searched": case(
+                        (UnansweredRow.resolved, 1), else_=UnansweredRow.times_searched + 1
+                    ),
+                    "resolved_answer_id": case(
+                        (UnansweredRow.resolved, None), else_=UnansweredRow.resolved_answer_id
+                    ),
                     "last_seen": now,
                     "sample_text": sample,
                     "resolved": False,

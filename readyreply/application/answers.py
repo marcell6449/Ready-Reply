@@ -1,7 +1,7 @@
 """Answer management use cases (F2)."""
 
 from readyreply.application.context import Actor
-from readyreply.application.ports import Clock, UnitOfWork, UnitOfWorkFactory
+from readyreply.application.ports import AnswerWriter, Clock, UnitOfWork, UnitOfWorkFactory
 from readyreply.domain.answers import Answer, AnswerDraft, copy_title, title_key
 from readyreply.domain.errors import ConflictError
 from readyreply.domain.permissions import Action
@@ -30,16 +30,17 @@ class CreateAnswer:
     def execute(self, actor: Actor, draft: AnswerDraft) -> Answer:
         with self._uow_factory() as uow:
             answer = self.add_within(uow, actor, draft)
+            uow.businesses.bump_revision(actor.business_id)
             uow.commit()
             return answer
 
     def add_within(self, uow: UnitOfWork, actor: Actor, draft: AnswerDraft) -> Answer:
-        """Create inside an existing transaction (used when answering a question)."""
+        """Create inside the caller's transaction. The caller bumps the search revision once."""
         actor.require(Action.MANAGE_ANSWERS)
         cleaned = draft.cleaned()
         _ensure_title_free(uow, actor.business_id, cleaned.title, None)
         now = self._clock.now()
-        answer = uow.answers.add(
+        return uow.answers.add(
             Answer(
                 id=None,
                 business_id=actor.business_id,
@@ -51,8 +52,6 @@ class CreateAnswer:
                 updated_at=now,
             )
         )
-        uow.businesses.bump_revision(actor.business_id)
-        return answer
 
 
 class EditAnswer:
@@ -86,7 +85,7 @@ class DeleteAnswer:
 
 
 class DuplicateAnswer:
-    def __init__(self, uow_factory: UnitOfWorkFactory, create: CreateAnswer, suffix: str) -> None:
+    def __init__(self, uow_factory: UnitOfWorkFactory, create: AnswerWriter, suffix: str) -> None:
         self._uow_factory = uow_factory
         self._create = create
         self._suffix = suffix
@@ -99,5 +98,6 @@ class DuplicateAnswer:
             title = copy_title(original.title, self._suffix, taken)
             draft = AnswerDraft(title, original.category, original.body, original.tags)
             answer = self._create.add_within(uow, actor, draft)
+            uow.businesses.bump_revision(actor.business_id)
             uow.commit()
             return answer

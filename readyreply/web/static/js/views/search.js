@@ -15,11 +15,18 @@ export function renderSearch(root) {
   runSearch(state.query);
 }
 
-export function onQueryInput(query, { immediate = false } = {}) {
+export function onQueryInput(query) {
   state.query = query;
   clearTimeout(searchTimer);
   clearTimeout(recordTimer);
-  searchTimer = setTimeout(() => runSearch(query), immediate ? 0 : SEARCH_DELAY_MS);
+  searchTimer = setTimeout(() => runSearch(query), SEARCH_DELAY_MS);
+}
+
+export function searchNow(query) {
+  state.query = query;
+  clearTimeout(searchTimer);
+  clearTimeout(recordTimer);
+  runSearch(query);
 }
 
 async function runSearch(query) {

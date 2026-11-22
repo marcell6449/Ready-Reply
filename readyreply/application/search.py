@@ -4,7 +4,7 @@ import threading
 from dataclasses import dataclass
 
 from readyreply.application.context import Actor
-from readyreply.application.ports import UnitOfWork, UnitOfWorkFactory
+from readyreply.application.ports import SearchIndexProvider, UnitOfWork, UnitOfWorkFactory
 from readyreply.domain.answers import Answer
 from readyreply.domain.permissions import Action
 from readyreply.domain.search.engine import SearchDocument, SearchEngine, SearchIndex
@@ -59,7 +59,7 @@ class SearchIndexCache:
 
 class SearchAnswers:
     def __init__(
-        self, uow_factory: UnitOfWorkFactory, engine: SearchEngine, cache: SearchIndexCache
+        self, uow_factory: UnitOfWorkFactory, engine: SearchEngine, cache: SearchIndexProvider
     ) -> None:
         self._uow_factory = uow_factory
         self._engine = engine

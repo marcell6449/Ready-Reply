@@ -1,15 +1,14 @@
 import { api } from "../api.js";
 import { busy, h, show, toast } from "../dom.js";
 import { errorText, t } from "../i18n.js";
-
-const DEMOS = ["soda", "salon", "hardware"];
+import { state } from "../state.js";
 
 export function renderData(root) {
   const report = h("div", { id: "import-report", "aria-live": "polite" });
   const file = h("input", { type: "file", accept: ".csv,text/csv", "aria-label": t("data.choose_file") });
   show(root, h("section", { class: "panel" },
     h("h1", {}, t("data.demo_title")), h("p", { class: "muted" }, t("data.demo_intro")),
-    h("div", { class: "demo-grid" }, DEMOS.map((kind) => h("button", {
+    h("div", { class: "demo-grid" }, state.demoKinds.map((kind) => h("button", {
       class: "button demo", type: "button", "data-demo": kind,
       onClick: (e) => busy(e.currentTarget, () => loadDemo(kind)),
     }, t(`demo.${kind}`)))),

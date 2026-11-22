@@ -1,6 +1,5 @@
 """First-run setup, login and logout (F6)."""
 
-import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -24,12 +23,13 @@ def _signed_in(response: Response, new: NewSession, settings: Settings) -> MeOut
 
 @router.get("/setup/status")
 def setup_status(response: Response, container: ContainerDep) -> SetupStatusOut:
-    csrf = secrets.token_urlsafe(32)
-    set_private_cookie(response, CSRF_COOKIE, csrf, container.settings)
+    status = container.auth.setup_status.execute()
+    set_private_cookie(response, CSRF_COOKIE, status.csrf_token, container.settings)
     return SetupStatusOut(
-        needs_setup=container.auth.needs_setup.execute(),
-        csrf_token=csrf,
+        needs_setup=status.needs_setup,
+        csrf_token=status.csrf_token,
         locale=container.settings.locale,
+        demo_kinds=list(container.admin.load_demo.kinds()),
     )
 
 
