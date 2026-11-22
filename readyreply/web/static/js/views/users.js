@@ -1,5 +1,5 @@
 import { api } from "../api.js";
-import { busy, field, h, show, toast } from "../dom.js";
+import { busy, field, h, show, submitForm, toast } from "../dom.js";
 import { errorText, t } from "../i18n.js";
 import { state } from "../state.js";
 
@@ -59,19 +59,13 @@ function newUserForm(root) {
   const username = h("input", { required: true, maxlength: 32, autocomplete: "off" });
   const password = h("input", { type: "password", required: true, autocomplete: "new-password" });
   const role = roleSelect("staff");
-  const error = h("p", { class: "form-error", role: "alert" });
-  const submit = h("button", { class: "button", type: "submit" }, t("users.create"));
-  return h("form", { class: "subpanel", onSubmit: (event) => {
-    event.preventDefault();
-    busy(submit, async () => {
-      try {
-        await api.post("/api/users", { username: username.value, password: password.value, role: role.value });
-        await renderUsers(root);
-      } catch (e) { error.textContent = errorText(e.code); }
-    });
-  } },
-  h("h2", {}, t("users.new")),
-  field(t("auth.username"), username, t("auth.username_hint")),
-  field(t("auth.password"), password, t("auth.password_hint")),
-  field(t("users.role"), role), error, submit);
+  const create = async () => {
+    await api.post("/api/users", { username: username.value, password: password.value, role: role.value });
+    await renderUsers(root);
+  };
+  return submitForm({ className: "subpanel", submitLabel: t("users.create"), onSubmit: create },
+    h("h2", {}, t("users.new")),
+    field(t("auth.username"), username, t("auth.username_hint")),
+    field(t("auth.password"), password, t("auth.password_hint")),
+    field(t("users.role"), role));
 }

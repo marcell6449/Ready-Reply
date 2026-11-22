@@ -1,6 +1,6 @@
 import { api } from "../api.js";
-import { busy, field, h, show, toast } from "../dom.js";
-import { errorText, t, variableLabel } from "../i18n.js";
+import { busy, field, h, show, submitForm, toast } from "../dom.js";
+import { t, variableLabel } from "../i18n.js";
 import { state } from "../state.js";
 
 const PLACEHOLDER = /\{\{|\}\}|\{([a-z][a-z0-9_]{0,39})\}/g;
@@ -42,29 +42,26 @@ async function remove(root, answer) {
 export async function renderAnswerEditor(root, answerId, prefill = {}) {
   const answers = answerId ? await api.get("/api/answers") : [];
   const current = answers.find((a) => String(a.id) === String(answerId)) || prefill;
-  const inputs = editorInputs(current);
+  show(root, editorForm(answerId, editorInputs(current), prefill.questionId));
+  root.querySelector("input[name=title]").focus();
+}
+
+function editorForm(answerId, inputs, questionId) {
   const usage = h("p", { class: "field-hint", id: "variable-usage" });
   const updateUsage = () => describeUsage(usage, inputs.body.value);
   inputs.body.addEventListener("input", updateUsage);
   updateUsage();
-  const error = h("p", { class: "form-error", role: "alert" });
-  const submit = h("button", { class: "button", type: "submit" }, t("common.save"));
-  const form = h("form", { class: "panel", onSubmit: (event) => {
-    event.preventDefault();
-    busy(submit, () => save(answerId, inputs, prefill.questionId).catch((e) => {
-      error.textContent = errorText(e.code);
-    }));
-  } },
+  return submitForm({
+    submitLabel: t("common.save"),
+    onSubmit: () => save(answerId, inputs, questionId),
+    extraActions: [h("a", { class: "button secondary", href: "#/answers" }, t("common.cancel"))],
+  },
   h("h1", {}, answerId ? t("answers.edit_title") : t("answers.new_title")),
   field(t("answers.field_title"), inputs.title),
   field(t("answers.field_category"), inputs.category),
   field(t("answers.field_body"), inputs.body, t("answers.body_hint")),
   variableButtons(inputs.body, updateUsage), usage,
-  field(t("answers.field_tags"), inputs.tags, t("answers.tags_hint")),
-  error, h("div", { class: "row" }, submit,
-    h("a", { class: "button secondary", href: "#/answers" }, t("common.cancel"))));
-  show(root, form);
-  inputs.title.focus();
+  field(t("answers.field_tags"), inputs.tags, t("answers.tags_hint")));
 }
 
 function editorInputs(current) {

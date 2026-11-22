@@ -1,4 +1,5 @@
 // Safe DOM building: text is always inserted as text nodes, never parsed as HTML.
+import { errorText } from "./i18n.js";
 
 export function h(tag, props = {}, ...children) {
   const element = document.createElement(tag);
@@ -60,4 +61,16 @@ export async function busy(button, action) {
   } finally {
     button.disabled = false;
   }
+}
+
+// A form that blocks double submits and shows the error message in place.
+export function submitForm({ className = "panel", submitLabel, onSubmit, extraActions = [] }, ...children) {
+  const error = h("p", { class: "form-error", role: "alert" });
+  const submit = h("button", { class: "button", type: "submit" }, submitLabel);
+  const actions = extraActions.length ? h("div", { class: "row" }, submit, extraActions) : submit;
+  return h("form", { class: className, onSubmit: (event) => {
+    event.preventDefault();
+    error.textContent = "";
+    busy(submit, () => onSubmit().catch((failure) => { error.textContent = errorText(failure.code); }));
+  } }, children, error, actions);
 }

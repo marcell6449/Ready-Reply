@@ -40,6 +40,14 @@ def _install_request_guard(app: FastAPI, settings: Settings) -> None:
     )
 
 
+def _serve_frontend(app: FastAPI) -> None:
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def index() -> FileResponse:
+        return FileResponse(STATIC_DIR / "index.html")
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     container = build_container(settings or Settings())
 
@@ -57,10 +65,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     _install_request_guard(app, container.settings)
     for router in (auth.router, content.router, activity.router, admin.router):
         app.include_router(router)
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-    @app.get("/", include_in_schema=False)
-    def index() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html")
-
+    _serve_frontend(app)
     return app

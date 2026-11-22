@@ -44,6 +44,7 @@ async function suggest(question) {
   try {
     const result = await api.post("/api/ai/suggest", { question_id: question.id, locale: currentLocale() });
     show(panel, result.kind === "draft" ? draftPanel(question, result) : manualPanel(question, result));
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     show(panel, h("p", { class: "form-error" }, errorText(error.code)));
   }

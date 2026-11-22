@@ -1,6 +1,6 @@
 import { api } from "../api.js";
-import { busy, field, h, show, toast } from "../dom.js";
-import { errorText, t, variableLabel } from "../i18n.js";
+import { field, h, show, submitForm, toast } from "../dom.js";
+import { t, variableLabel } from "../i18n.js";
 import { state } from "../state.js";
 
 export async function renderBusiness(root) {
@@ -12,19 +12,10 @@ export async function renderBusiness(root) {
     redraw();
   })));
   redraw();
-  const error = h("p", { class: "form-error", role: "alert" });
-  const submit = h("button", { class: "button", type: "submit" }, t("common.save"));
-  show(root, h("form", { class: "panel", onSubmit: (event) => {
-    event.preventDefault();
-    busy(submit, () => save(rows).catch((e) => { error.textContent = errorText(e.code); }));
-  } },
-  h("h1", {}, t("business.title")), h("p", { class: "muted" }, t("business.intro")),
-  list,
-  h("button", { class: "button secondary", type: "button", onClick: () => {
-    rows.push({ key: "", label: "", value: "", builtin: false });
-    redraw();
-  } }, t("business.add")),
-  error, submit));
+  const addCustom = () => { rows.push({ key: "", label: "", value: "", builtin: false }); redraw(); };
+  show(root, submitForm({ submitLabel: t("common.save"), onSubmit: () => save(rows) },
+    h("h1", {}, t("business.title")), h("p", { class: "muted" }, t("business.intro")), list,
+    h("button", { class: "button secondary", type: "button", onClick: addCustom }, t("business.add"))));
 }
 
 function variableEditor(row, onRemove) {

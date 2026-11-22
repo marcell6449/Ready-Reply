@@ -29,6 +29,18 @@ def _to_question(row: UnansweredRow) -> UnansweredQuestion:
     )
 
 
+def _searched_again(sample: str, now: datetime) -> dict[str, object]:
+    """Update for a question already on file. If it was answered, it starts over at 1."""
+    was_resolved = UnansweredRow.resolved
+    return {
+        "times_searched": case((was_resolved, 1), else_=UnansweredRow.times_searched + 1),
+        "resolved_answer_id": case((was_resolved, None), else_=UnansweredRow.resolved_answer_id),
+        "last_seen": now,
+        "sample_text": sample,
+        "resolved": False,
+    }
+
+
 class SqlUnansweredRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -46,19 +58,7 @@ class SqlUnansweredRepository:
         )
         self._session.execute(
             statement.on_conflict_do_update(
-                index_elements=["business_id", "key"],
-                set_={
-                    # A question that was answered and is searched again starts over.
-                    "times_searched": case(
-                        (UnansweredRow.resolved, 1), else_=UnansweredRow.times_searched + 1
-                    ),
-                    "resolved_answer_id": case(
-                        (UnansweredRow.resolved, None), else_=UnansweredRow.resolved_answer_id
-                    ),
-                    "last_seen": now,
-                    "sample_text": sample,
-                    "resolved": False,
-                },
+                index_elements=["business_id", "key"], set_=_searched_again(sample, now)
             )
         )
 

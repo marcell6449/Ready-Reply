@@ -1,6 +1,6 @@
 import { api, setCsrf } from "../api.js";
-import { busy, field, h, show } from "../dom.js";
-import { errorText, t } from "../i18n.js";
+import { field, h, show, submitForm } from "../dom.js";
+import { t } from "../i18n.js";
 
 const SETUP_FORM = {
   title: "setup.title", intro: "setup.intro", submit: "setup.submit",
@@ -15,19 +15,14 @@ function credentialsForm(options, onSubmit) {
   const username = h("input", { name: "username", autocomplete: "username", required: true, maxlength: 32 });
   const password = h("input", { name: "password", type: "password", required: true,
     autocomplete: options.passwordAutocomplete, maxlength: 128 });
-  const error = h("p", { class: "form-error", role: "alert" });
-  const submit = h("button", { class: "button", type: "submit" }, t(options.submit));
-  const form = h("form", { class: "panel auth-panel", onSubmit: (event) => {
-    event.preventDefault();
-    busy(submit, () => onSubmit(username.value, password.value).catch((e) => {
-      error.textContent = errorText(e.code);
-    }));
-  } },
+  return submitForm({
+    className: "panel auth-panel",
+    submitLabel: t(options.submit),
+    onSubmit: () => onSubmit(username.value, password.value),
+  },
   h("h1", {}, t(options.title)), h("p", { class: "muted" }, t(options.intro)),
   field(t("auth.username"), username, options.usernameHint && t(options.usernameHint)),
-  field(t("auth.password"), password, options.passwordHint && t(options.passwordHint)),
-  error, submit);
-  return form;
+  field(t("auth.password"), password, options.passwordHint && t(options.passwordHint)));
 }
 
 async function signIn(url, username, password, onSignedIn) {
