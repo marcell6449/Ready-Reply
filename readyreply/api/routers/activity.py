@@ -1,5 +1,7 @@
 """Unanswered questions, statistics and AI suggestions (F5, F7, F8)."""
 
+from typing import Literal
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -20,6 +22,7 @@ router = APIRouter(prefix="/api")
 
 class SuggestIn(BaseModel):
     question_id: int
+    locale: Literal["es", "en"] | None = None
 
 
 @router.get("/unanswered")
@@ -61,7 +64,7 @@ def stats(actor: ActorDep, container: ContainerDep) -> StatsOut:
 
 @router.post("/ai/suggest")
 def suggest(body: SuggestIn, actor: ActorDep, container: ContainerDep) -> SuggestionOut:
-    outcome = container.activity.suggest.execute(actor, body.question_id)
+    outcome = container.activity.suggest.execute(actor, body.question_id, body.locale)
     if isinstance(outcome.result, Draft):
         return SuggestionOut(kind="draft", text=outcome.result.text, notice=outcome.notice)
     return SuggestionOut(

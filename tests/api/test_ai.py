@@ -187,7 +187,8 @@ def test_unknown_question(tmp_path: Path) -> None:
 
 
 def test_new_provider_needs_only_a_registry_entry() -> None:  # F8-08
+    """Replaced the old check that forced editing config.py too (review finding R-06)."""
     from readyreply.infrastructure.ai import registry
 
     assert set(registry.PROVIDERS) == {"ollama", "manual", "openai_compatible"}
-    assert set(Settings.model_fields["ai_provider"].annotation.__args__) == set(registry.PROVIDERS)  # type: ignore[union-attr]
+    assert Settings.model_fields["ai_provider"].annotation is str

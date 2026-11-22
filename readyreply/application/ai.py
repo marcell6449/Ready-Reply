@@ -44,17 +44,23 @@ class SuggestAnswer:
         uow_factory: UnitOfWorkFactory,
         provider: SuggestionProvider,
         fallback: SuggestionProvider,
-        settings: PromptSettings,
+        settings_by_locale: Mapping[str, PromptSettings],
+        default_locale: str,
     ) -> None:
         self._uow_factory = uow_factory
         self._provider = provider
         self._fallback = fallback
-        self._settings = settings
+        self._settings_by_locale = settings_by_locale
+        self._default_locale = default_locale
 
-    def execute(self, actor: Actor, question_id: int) -> SuggestionOutcome:
+    def execute(self, actor: Actor, question_id: int, locale: str | None) -> SuggestionOutcome:
         actor.require(Action.USE_AI)
-        request = self._request(actor, question_id)
-        prompt = build_prompt(request, self._settings.template)
+        settings = (
+            self._settings_by_locale.get(locale or "", None)
+            or self._settings_by_locale[self._default_locale]
+        )
+        request = self._request(actor, question_id, settings)
+        prompt = build_prompt(request, settings.template)
         try:
             result = self._provider.suggest(prompt)
         except ProviderUnavailableError:
@@ -64,10 +70,13 @@ class SuggestAnswer:
             result = clean_draft(result.text)
         return SuggestionOutcome(result, None)
 
-    def _request(self, actor: Actor, question_id: int) -> SuggestionRequest:
+    def _request(
+        self, actor: Actor, question_id: int, settings: PromptSettings
+    ) -> SuggestionRequest:
         with self._uow_factory() as uow:
             question = uow.unanswered.get_open(actor.business_id, question_id)
-            variables = tuple(self._labelled(v) for v in uow.variables.list_all(actor.business_id))
+            stored = uow.variables.list_all(actor.business_id)
+            variables = tuple(_labelled(v, settings.builtin_labels) for v in stored)
             titles = tuple(answer.title for answer in uow.answers.list_all(actor.business_id))
         names = [variable.value for variable in variables if variable.key == "name"]
         return SuggestionRequest(
@@ -75,10 +84,11 @@ class SuggestAnswer:
             business_name=names[0] if names else "",
             variables=variables,
             existing_titles=titles,
-            language=self._settings.language,
+            language=settings.language,
         )
 
-    def _labelled(self, variable: Variable) -> Variable:
-        if variable.label:
-            return variable
-        return replace(variable, label=self._settings.builtin_labels.get(variable.key, ""))
+
+def _labelled(variable: Variable, builtin_labels: Mapping[str, str]) -> Variable:
+    if variable.label:
+        return variable
+    return replace(variable, label=builtin_labels.get(variable.key, ""))

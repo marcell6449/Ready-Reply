@@ -22,7 +22,7 @@ from readyreply.application import (
 )
 from readyreply.application.bootstrap import EnsureBusiness
 from readyreply.application.ports import UnitOfWorkFactory
-from readyreply.config import Settings
+from readyreply.config import LOCALES, Settings
 from readyreply.domain.ai import PromptTemplate
 from readyreply.domain.search.engine import SearchEngine
 from readyreply.domain.search.scorers import (
@@ -182,7 +182,8 @@ def _content(shared: _Shared) -> ContentUseCases:
 def _suggest(shared: _Shared) -> ai.SuggestAnswer:
     provider = build_provider(shared.settings, shared.http_client)
     fallback = ManualPromptProvider(shared.settings.ai_chat_url)
-    return ai.SuggestAnswer(shared.uow, provider, fallback, _prompt_settings(shared.texts))
+    by_locale = {locale: _prompt_settings(TranslationTexts(locale)) for locale in LOCALES}
+    return ai.SuggestAnswer(shared.uow, provider, fallback, by_locale, shared.settings.locale)
 
 
 def _activity(shared: _Shared) -> ActivityUseCases:

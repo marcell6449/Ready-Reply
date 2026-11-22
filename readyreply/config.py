@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 DEFAULT_PORT = 8000
 PORT_SEARCH_RANGE = 10
 MEGABYTE = 1024 * 1024
+LOCALES = ("es", "en")
 
 
 class Settings(BaseSettings):
@@ -25,7 +26,8 @@ class Settings(BaseSettings):
     max_request_bytes: int = Field(default=512 * 1024, ge=1024)
     open_browser: bool = True
 
-    ai_provider: Literal["ollama", "manual", "openai_compatible"] = "ollama"
+    ai_provider: str = "ollama"
+    """A name registered in infrastructure/ai/registry.py."""
     ai_model: str = "gemma3:4b"
     ai_base_url: str = "http://127.0.0.1:11434"
     ai_chat_url: str = ""

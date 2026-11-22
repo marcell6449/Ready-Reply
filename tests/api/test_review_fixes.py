@@ -3,6 +3,7 @@
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -10,6 +11,8 @@ from fastapi.testclient import TestClient
 
 from readyreply.infrastructure.security.memory import MAX_TRACKED_KEYS, MemoryLoginFailureLog
 from readyreply.infrastructure.security.passwords import Argon2PasswordHasher
+from readyreply.config import Settings
+from readyreply.main import create_app
 from tests.conftest import ADMIN, Api, run_sql
 
 
@@ -132,3 +135,27 @@ def test_r04_local_hosts_are_allowed(anon: Api, host: str) -> None:
 
 def test_qa05_long_pasted_query_is_cut_not_rejected(admin: Api) -> None:
     assert admin.get("/api/search", params={"q": "horario " * 1000}).status_code == 200
+
+
+def test_r06_unknown_provider_fails_clearly_at_startup(tmp_path: Path) -> None:
+    settings = Settings(
+        database_url=f"sqlite:///{tmp_path / 'x.db'}", ai_provider="nope", _env_file=None
+    )
+    with pytest.raises(ValueError, match="nope"):
+        create_app(settings)
+
+
+def test_r06_registry_is_the_only_list_of_providers() -> None:
+    from readyreply.infrastructure.ai import registry
+
+    assert Settings.model_fields["ai_provider"].annotation is str
+    assert {"ollama", "manual", "openai_compatible"} <= set(registry.PROVIDERS)
+
+
+def test_qa12_prompt_language_follows_the_request(admin: Api) -> None:
+    admin.post("/api/unanswered", json={"query": "do you have parking"})
+    (question,) = admin.get("/api/unanswered").json()
+    english = admin.post("/api/ai/suggest", json={"question_id": question["id"], "locale": "en"})
+    spanish = admin.post("/api/ai/suggest", json={"question_id": question["id"]})
+    assert "English" in english.json()["prompt"]
+    assert "español" in spanish.json()["prompt"]

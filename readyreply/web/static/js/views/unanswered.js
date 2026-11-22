@@ -1,7 +1,7 @@
 import { api } from "../api.js";
 import { copyText } from "../clipboard.js";
 import { busy, field, h, show, toast } from "../dom.js";
-import { errorText, t } from "../i18n.js";
+import { currentLocale, errorText, t } from "../i18n.js";
 import { isAdmin, state } from "../state.js";
 
 export async function renderUnanswered(root) {
@@ -42,7 +42,7 @@ async function suggest(question) {
   show(panel, h("p", { class: "muted", role: "status" }, t("ai.generating")));
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
   try {
-    const result = await api.post("/api/ai/suggest", { question_id: question.id });
+    const result = await api.post("/api/ai/suggest", { question_id: question.id, locale: currentLocale() });
     show(panel, result.kind === "draft" ? draftPanel(question, result) : manualPanel(question, result));
   } catch (error) {
     show(panel, h("p", { class: "form-error" }, errorText(error.code)));
