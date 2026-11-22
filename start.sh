@@ -3,6 +3,11 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+if [ ! -f readyreply/main.py ] || [ ! -d wheels ]; then
+  echo "Ready Reply is still inside the zip file. Unzip it first, then run ./start.sh from the new folder."
+  exit 1
+fi
+
 find_python() {
   for candidate in python3.13 python3.12 python3.14 python3 python; do
     if command -v "$candidate" >/dev/null 2>&1 &&
