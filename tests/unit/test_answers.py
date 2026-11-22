@@ -118,3 +118,11 @@ def test_cleaned_fields_are_nfc_and_without_controls() -> None:
     cleaned = draft(title=unicodedata.normalize("NFD", "é" * 120), body="a\x00b").cleaned()
     assert cleaned.title == "é" * 120
     assert cleaned.body == "ab"
+
+
+def test_persisted_id_rejects_missing_id() -> None:
+    from readyreply.domain.errors import NotPersistedError, persisted_id
+
+    assert persisted_id(7) == 7
+    with pytest.raises(NotPersistedError):
+        persisted_id(None)
