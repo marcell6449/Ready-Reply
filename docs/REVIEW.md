@@ -357,31 +357,40 @@ pytest tests -m "not e2e": 274 passed, 26 deselected
 
 | ID | Severity | Category | Location | Title | Status |
 |---|---|---|---|---|---|
-| R-01 | high | security | application/auth.py:121-128 | Login timing reveals username existence and inactive accounts | open |
-| R-02 | medium | security | api/security.py:72-75 | No request body size limit (pre-auth memory DoS) | open |
-| R-03 | medium | security | infrastructure/security/memory.py:31-36 | Login throttle can be bypassed (wipe, race, no per-IP limit) | open |
-| R-04 | medium | security | api/routers/auth.py:36-52 | First-run setup claimable from the LAN or via DNS rebinding | open |
-| R-05 | medium | security | config.py:22 | Credentials and cookies in cleartext over Wi-Fi | open |
-| R-06 | medium | SOLID | config.py:25, infrastructure/ai/registry.py:30 | New AI provider requires editing two modules | open |
-| R-07 | medium | architecture | application/auth.py:21 | BusinessResolver port missing; tenant id hard-coded | open |
-| R-08 | medium | architecture | api/routers/admin.py:19, 89-103 | Phone-access endpoints skip use case; authorization only in router | open |
-| R-09 | medium | typing | tests/e2e/* | ruff, ruff format and mypy gates fail | open |
-| R-10 | low | SOLID | application/answers.py:88 and others | Use cases depend on concrete CreateAnswer / SearchIndexCache | open |
-| R-11 | low | SOLID | application/auth.py:52 | CSRF token generated outside TokenService port | open |
-| R-12 | low | security | api/routers/auth.py:19-28 | Cookie max_age not refreshed; sliding expiry ineffective | open |
-| R-13 | low | security | application/auth.py:151-160 | Expired sessions never purged | open |
-| R-14 | low | smell | infrastructure/csv/codec.py:41 | CSV import reports wrong row numbers | open |
-| R-15 | low | smell | application/search.py:15, 74 | Empty query capped at 50 answers (F3-08) | open |
-| R-16 | low | smell | infrastructure/ai/ollama.py:17-25 | Duplicated provider error handling | open |
-| R-17 | low | smell | application/ai.py:72 and others | Magic numbers and strings | open |
-| R-18 | low | smell | application/demo.py:24, ports.py:149 | Dead code (kinds(), Texts) | open |
-| R-19 | low | smell | web/static/js/views/answers.js:6 | Server rules duplicated in frontend | open |
-| R-20 | low | smell | api/schemas.py:72, 151 | Silent `or 0` / `is not None` fallbacks | open |
-| R-21 | low | smell | web/static/js/views/auth.js:8 | Behaviour switched by flags | open |
-| R-22 | low | smell | application/answers.py:54 | Revision bumped once per imported row | open |
-| R-23 | low | smell | domain/users.py:44-46 | Last-admin rule raises InvalidInputError instead of ConflictError | open |
-| R-24 | low | smell | infrastructure/db/repositories/activity.py:47-56 | Upsert reopens resolved questions; resolved state stored twice | open |
-| R-25 | low | smell | container.py:216-245 | build_container longer than 25 lines | open |
-| R-26 | low | smell | infrastructure/db/repositories/content.py:171-175 | IntegrityError mid-import fails remaining rows with 500 | open |
-| R-27 | low | architecture | infrastructure/search/distance.py:8 | Drift from DESIGN (OSA, composition root location) | open |
-| R-28 | low | architecture | tests/qa, tests/integration | QA and repository integration tests missing | open |
+| R-01 | high | security | application/auth.py:121-128 | Login timing reveals username existence and inactive accounts | fixed — one Argon2 check for every outcome (decoy hash); test_r01 |
+| R-02 | medium | security | api/security.py:72-75 | No request body size limit (pre-auth memory DoS) | fixed — ASGI request guard caps every body before parsing; test_r02_* |
+| R-03 | medium | security | infrastructure/security/memory.py:31-36 | Login throttle can be bypassed (wipe, race, no per-IP limit) | fixed — per-user and per-address limits, one lock, eviction keeps lockouts; test_r03_* |
+| R-04 | medium | security | api/routers/auth.py:36-52 | First-run setup claimable from the LAN or via DNS rebinding | partly fixed — Host-header check blocks DNS rebinding (test_r04_*); first-run on the LAN accepted and documented (README FAQ) |
+| R-05 | medium | security | config.py:22 | Credentials and cookies in cleartext over Wi-Fi | accepted risk — documented in README FAQ (private Wi-Fi, RR_HOST=127.0.0.1, RR_COOKIE_SECURE behind HTTPS) |
+| R-06 | medium | SOLID | config.py:25, infrastructure/ai/registry.py:30 | New AI provider requires editing two modules | fixed — provider name is a string checked against the registry; test_r06_* |
+| R-07 | medium | architecture | application/auth.py:21 | BusinessResolver port missing; tenant id hard-coded | fixed — BusinessResolver port + SingleBusinessResolver; test_r07 |
+| R-08 | medium | architecture | api/routers/admin.py:19, 89-103 | Phone-access endpoints skip use case; authorization only in router | fixed — GetPhoneAccess use case behind a NetworkInfo port; test_r08 |
+| R-09 | medium | typing | tests/e2e/* | ruff, ruff format and mypy gates fail | fixed — ruff, format and mypy pass on all tests |
+| R-10 | low | SOLID | application/answers.py:88 and others | Use cases depend on concrete CreateAnswer / SearchIndexCache | fixed — AnswerWriter and SearchIndexProvider ports |
+| R-11 | low | SOLID | application/auth.py:52 | CSRF token generated outside TokenService port | fixed — CSRF tokens come from TokenService |
+| R-12 | low | security | api/routers/auth.py:19-28 | Cookie max_age not refreshed; sliding expiry ineffective | fixed — cookie re-set when the session is extended (QA-09) |
+| R-13 | low | security | application/auth.py:151-160 | Expired sessions never purged | fixed — expired sessions deleted on login; test_r13 |
+| R-14 | low | smell | infrastructure/csv/codec.py:41 | CSV import reports wrong row numbers | fixed — codec returns the file line of each row; test_r14 |
+| R-15 | low | smell | application/search.py:15, 74 | Empty query capped at 50 answers (F3-08) | won't fix — 50 is intentional for phones; F3-08 and DESIGN updated |
+| R-16 | low | smell | infrastructure/ai/ollama.py:17-25 | Duplicated provider error handling | fixed — shared post_json / require_text helpers |
+| R-17 | low | smell | application/ai.py:72 and others | Magic numbers and strings | fixed — named constants (BUSINESS_NAME_KEY, SECONDS_PER_HOUR, TITLE_INPUT_MAX, MAX_TAG_INPUTS, FUZZY_EDITS_*) |
+| R-18 | low | smell | application/demo.py:24, ports.py:149 | Dead code (kinds(), Texts) | fixed — kinds() now serves the demo list; Texts port used for typing |
+| R-19 | low | smell | web/static/js/views/answers.js:6 | Server rules duplicated in frontend | partly fixed — demo list comes from the server; the placeholder regex stays in the editor for live hints |
+| R-20 | low | smell | api/schemas.py:72, 151 | Silent `or 0` / `is not None` fallbacks | fixed — persisted_id() raises NotPersistedError instead of silent fallbacks |
+| R-21 | low | smell | web/static/js/views/auth.js:8 | Behaviour switched by flags | fixed — options objects in auth.js; searchNow() split from onQueryInput() |
+| R-22 | low | smell | application/answers.py:54 | Revision bumped once per imported row | fixed — revision bumped once per use case |
+| R-23 | low | smell | domain/users.py:44-46 | Last-admin rule raises InvalidInputError instead of ConflictError | fixed — ConflictError 409; test_r23 |
+| R-24 | low | smell | infrastructure/db/repositories/activity.py:47-56 | Upsert reopens resolved questions; resolved state stored twice | fixed — a resolved question searched again restarts at 1 and drops the old answer link; test_r24 |
+| R-25 | low | smell | container.py:216-245 | build_container longer than 25 lines | fixed — _shared() extracted |
+| R-26 | low | smell | infrastructure/db/repositories/content.py:171-175 | IntegrityError mid-import fails remaining rows with 500 | fixed — each CSV row runs in a savepoint; test_r26 |
+| R-27 | low | architecture | infrastructure/search/distance.py:8 | Drift from DESIGN (OSA, composition root location) | fixed — DESIGN updated (OSA, container.py, journal mode, request guard) |
+| R-28 | low | architecture | tests/qa, tests/integration | QA and repository integration tests missing | fixed — tests/integration/test_repositories.py and tests/qa |
+
+
+## Round 2
+
+The developer fixed the findings with a failing test first (`tests/api/test_review_fixes.py`,
+`tests/integration/test_repositories.py` and new unit tests). Status per finding is in the
+table above: 24 fixed, 2 partly fixed, 1 accepted risk (R-05), 1 won't fix (R-15). No high or
+medium finding remains open; the residual parts of R-04 and R-05 are accepted risks for a
+local-network app and are documented for the buyer.

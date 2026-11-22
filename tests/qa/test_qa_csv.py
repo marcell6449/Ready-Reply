@@ -3,6 +3,8 @@
 import csv
 import io
 import os
+from collections.abc import Iterator
+from typing import Any
 
 import pytest
 from fastapi import FastAPI
@@ -13,7 +15,7 @@ HEADER = "title,category,body,tags\n"
 LIMIT = 1024 * 1024
 
 
-def upload(api: Api, data: bytes) -> object:
+def upload(api: Api, data: bytes) -> Any:
     return api.post("/api/csv/import", content=data, headers={"content-type": "text/csv"})
 
 
@@ -51,7 +53,7 @@ def test_one_byte_over_the_limit_is_413_before_parsing(admin: Api, app: FastAPI)
 
 
 def test_over_the_limit_without_content_length_is_413(admin: Api) -> None:
-    def chunks():  # streamed, so no Content-Length header is sent
+    def chunks() -> Iterator[bytes]:  # streamed, so no Content-Length header is sent
         data = padded_file(LIMIT + 10)
         for start in range(0, len(data), 65536):
             yield data[start : start + 65536]

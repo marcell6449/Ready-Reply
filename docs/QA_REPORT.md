@@ -5,7 +5,7 @@ Date: 2026-11-21. Scope: the source under `readyreply/`, the release zip `dist/r
 ## 1. Summary
 
 - **230 new automated QA tests** in `tests/qa/`: API, live server with threads, real Chromium at 1280 px and 360 px, and a real `./start.sh` run from the release zip.
-- **22 tests fail** against the current code. They expose **15 defects** (QA-01 … QA-15): 0 high, 5 medium, 10 low. All are open.
+- **22 tests fail** against the current code. They expose **15 defects** (QA-01 … QA-15): 0 high, 5 medium, 10 low. **All 15 are fixed** (round 2, section 7).
 - Held up under attack: SQL injection, and HTML/JS injection in every text field. In the browser nothing ran and the text was shown literally. Also: the permission matrix (anonymous, staff, CSRF, foreign Origin, logout, expiry, deactivated and deleted users), concurrency (first-admin setup, same-title creates, copies, unanswered records, demo loads, imports), CSV size and row limits, search relevance and speed, and the rule that AI never saves anything by itself.
 - Weak spots:
   - Unicode handling of titles (emoji-only, invisible and decomposed characters).
@@ -60,7 +60,7 @@ Test files:
 - **Expected:** both answers are created; the titles are different.
 - **Actual:** 409 `answer.title_taken`. `normalize()` removes every non-alphanumeric character, so every emoji-only or symbol-only title gets the same empty key `""`, and the unique constraint fires.
 - **Tests:** `tests/qa/test_qa_input.py::test_emoji_only_titles_are_distinct_answers`, `::test_punctuation_title_does_not_block_an_unrelated_emoji_title`
-- **Status:** open
+- **Status:** fixed — `title_key` keeps the symbols when a title has no letters or digits (`domain/answers.py`). Proven by the QA tests and `tests/unit/test_answers.py::test_symbol_only_titles_have_distinct_keys`.
 
 ### QA-02 — Invisible characters bypass "title required" and "title taken"
 
@@ -75,7 +75,7 @@ Test files:
   1. 201: an answer with an invisible title appears in the list.
   2. 201: two answers that look identical. Zero-width and format characters (category Cf) are neither stripped nor ignored. `normalize()` turns them into a space, so `hora rio` ≠ `horario`. Text pasted from WhatsApp or the web often carries such characters.
 - **Tests:** `tests/qa/test_qa_input.py::test_invisible_only_title_is_rejected_as_empty[...]` (3 cases), `::test_title_differing_only_by_invisible_characters_is_a_duplicate[...]` (3 cases)
-- **Status:** open
+- **Status:** fixed — `clean_text` removes invisible format characters (except the emoji joiner) and `is_blank` rejects titles with nothing visible; `normalize` drops format characters (`domain/text.py`).
 
 ### QA-03 — Text is not NFC-normalized; decomposed accents count double
 
@@ -85,7 +85,7 @@ Test files:
 - **Expected:** accepted. The 120-character limit is about what the user sees, and the stored text is normalized.
 - **Actual:** 422 `answer.title_too_long`. Limits count code points, and the text is stored decomposed. The same happens for bodies (4,000) and variables (2,000).
 - **Test:** `tests/qa/test_qa_input.py::test_decomposed_accents_do_not_count_double_against_the_title_limit`
-- **Status:** open
+- **Status:** fixed — Every text field is NFC-normalized before validation (`clean_text`).
 
 ### QA-04 — A NUL byte is accepted in an answer, and the CSV backup then cannot be imported
 
@@ -97,7 +97,7 @@ Test files:
 - **Expected:** NUL is rejected or stripped on save, or the export can be re-imported (F10-01 round trip).
 - **Actual:** the import of the app's own export fails with 422 `csv.invalid_encoding` for the **whole file**.
 - **Test:** `tests/qa/test_qa_input.py::test_null_byte_in_an_answer_does_not_break_csv_backup`
-- **Status:** open
+- **Status:** fixed — Control characters other than tab and newline are removed on input, so exports always re-import.
 
 ### QA-05 — A long search query returns 422 instead of being cut to 200 characters
 
@@ -107,7 +107,7 @@ Test files:
 - **Expected:** 200, with the query cut to 200 characters (F3-11: "Queries are cut to 200 chars").
 - **Actual:** 422 `request.invalid`, because `Query(max_length=2000)` rejects the request before the cut. The UI input has `maxlength=200`, so the browser is not affected; API clients and pasted URLs are.
 - **Test:** `tests/qa/test_qa_input.py::test_search_accepts_a_long_pasted_query`
-- **Status:** open
+- **Status:** fixed — The search endpoint no longer limits the query length; the domain cuts it to 200 characters.
 
 ### QA-06 — A query made only of stop words hides every answer and is recorded as "unanswered"
 
@@ -118,7 +118,7 @@ Test files:
 - **Expected:** stop words are ignored (F3-03), so the query behaves like an empty query (F3-08/F3-09): all answers are shown and nothing is recorded.
 - **Actual:** 0 results. The search screen then records the greeting as an unanswered question. `POST /api/unanswered` with `hola buenas` returns 204, and the entry is listed under Unanswered, which fills the owner's list with greetings.
 - **Test:** `tests/qa/test_qa_input.py::test_stop_words_only_query_behaves_like_an_empty_query`
-- **Status:** open
+- **Status:** fixed — A query made only of stop words behaves like an empty query and is not recorded as unanswered (`Tokenizer.content_tokens`, `QuestionKeyer`).
 
 ### QA-07 — A CSV header with capital letters or spaces is accepted, but every row is rejected
 
@@ -129,7 +129,7 @@ Test files:
 - **Expected:** `{"imported": 1, "rejected": []}`. The header check accepts these headers, so the rows must be read with them.
 - **Actual:** `{"imported": 0, "rejected": [{"line": 2, "code": "answer.title_required"}]}`, and `answer.body_required` for the spaced header. `validate_header` trims and case-folds the header, but `row_to_draft` reads the cells by the exact names `title`, `category`, … So every row of the file is rejected with a misleading message.
 - **Tests:** `tests/qa/test_qa_csv.py::test_header_with_capital_letters_imports_the_rows`, `::test_header_with_spaces_imports_the_rows`
-- **Status:** open
+- **Status:** fixed — Rows are read by normalized column names (`csv_rules.row_to_draft`).
 
 ### QA-08 — CSV round trip strips a leading apostrophe the user typed
 
@@ -140,7 +140,7 @@ Test files:
 - **Expected:** the title comes back as `'=50% descuento` (F10-01).
 - **Actual:** it comes back as `=50% descuento`. Export does not escape a cell that already starts with `'`, but import removes a leading `'` when the next character is `=`, `+`, `-` or `@`.
 - **Test:** `tests/qa/test_qa_csv.py::test_round_trip_keeps_a_title_that_starts_with_apostrophe_and_equals`
-- **Status:** open
+- **Status:** fixed — Cells that start with the escape character are escaped too, so import gives back the exact text.
 
 ### QA-09 — The session cookie is not renewed, so active users are logged out after RR_SESSION_HOURS anyway
 
@@ -151,7 +151,7 @@ Test files:
 - **Expected:** only **idle** sessions expire (F6-08). When the server extends the session, the response re-sends `rr_session` with a fresh `Max-Age`.
 - **Actual:** no `Set-Cookie` is sent. The browser drops the cookie 12 h after login, even though the server session is still valid, so a staff member who works all day is logged out mid-shift. Verified at the API level with a controlled clock. With `RR_SESSION_HOURS=1`, the server still accepted the session at 86 minutes, while the cookie had a 60-minute lifetime.
 - **Test:** `tests/qa/test_qa_security.py::test_active_session_cookie_is_renewed_with_the_server_session`
-- **Status:** open
+- **Status:** fixed — The session dependency re-sets the cookie whenever the server extends the session (`api/deps.py`).
 
 ### QA-10 — Login throttling is per device and user, not per user
 
@@ -162,7 +162,7 @@ Test files:
 - **Expected:** 429 `auth.too_many_attempts` (F6-07: "5 failed logins for one user").
 - **Actual:** 401. The throttle key is `client_address:username`, so every device on the Wi-Fi gets its own 5 attempts per 5 minutes.
 - **Test:** `tests/qa/test_qa_security.py::test_login_throttle_is_per_user_not_per_address`
-- **Status:** open
+- **Status:** fixed — Logins are throttled per username (any device) and per address (20 failures), with one lock so parallel guesses cannot exceed the limit.
 
 ### QA-11 — RR_AI_TIMEOUT_SECONDS is not a total deadline
 
@@ -174,7 +174,7 @@ Test files:
 - **Expected:** after ~1 s, the app falls back to the manual prompt with `ai.unavailable` (F8-06: "exceeds RR_AI_TIMEOUT_SECONDS").
 - **Actual:** the request takes 2.8 s and returns a draft. `httpx.Client(timeout=…)` applies the timeout to each connect or read, not to the whole call. A slow model that keeps producing output can hold the request (and a worker thread) far longer than configured.
 - **Test:** `tests/qa/test_qa_ai.py::test_timeout_is_a_total_deadline_not_per_chunk`
-- **Status:** open
+- **Status:** fixed — Providers read the reply in chunks under one total deadline (`infrastructure/ai/http.py::post_json`).
 
 ### QA-12 — The AI prompt ignores the language chosen in the UI
 
@@ -186,7 +186,7 @@ Test files:
 - **Expected:** the prompt asks for a reply in the UI language, English (F8-07).
 - **Actual:** the prompt is in Spanish and asks for a reply in "español". The suggest API never receives the UI language; server-side texts always follow `RR_LOCALE`. The duplicate suffix shows the same behavior: it creates "(copia)" in the English UI.
 - **Test:** `tests/qa/test_qa_browser.py::test_ai_prompt_is_in_the_language_the_user_chose`
-- **Status:** open
+- **Status:** fixed — The frontend sends the UI language; the server builds the prompt from that language's texts.
 
 ### QA-13 — The release zip is stale
 
@@ -199,7 +199,7 @@ Test files:
   - `docs/DESIGN.md` and `docs/CRITERIA.md`, which `DOCS` lists, are missing.
   - The zip was built before the last source changes.
 - **Test:** `tests/qa/test_qa_install.py::test_release_zip_matches_the_source_and_build_script`
-- **Status:** open
+- **Status:** fixed — The zip is rebuilt after every change; `docs/DESIGN.md` and `docs/CRITERIA.md` are included.
 
 ### QA-14 — Following the README backup advice can lose the latest data
 
@@ -211,7 +211,7 @@ Test files:
 - **Expected:** the copy contains all data.
 - **Actual:** the copy lacks the last answer. The database runs in WAL mode; when the process is not stopped gracefully, the recent writes stay in `readyreply.db-wal`, which the README does not mention. Reproduced with SIGHUP (automated) and with SIGKILL (manually: 13 instead of 14 answers in the copied file). A graceful SIGTERM or Ctrl+C checkpoints correctly.
 - **Test:** `tests/qa/test_qa_install.py::test_readme_backup_after_closing_the_window_keeps_all_data`
-- **Status:** open
+- **Status:** fixed — SQLite now uses a rollback journal, so every commit is inside `readyreply.db`; the README says to copy the whole `data` folder.
 
 ### QA-15 — `.env.example` does not list every setting
 
@@ -221,7 +221,7 @@ Test files:
 - **Expected:** every `RR_*` option is listed. The README says "every option is an `RR_*` environment variable. See `.env.example`."
 - **Actual:** `RR_MAX_CSV_BYTES` and `RR_COOKIE_SECURE` are missing.
 - **Test:** `tests/qa/test_qa_install.py::test_env_example_lists_every_setting`
-- **Status:** open
+- **Status:** fixed — `.env.example` lists every `RR_*` setting.
 
 ### Checked and not defects (for the record)
 
@@ -312,3 +312,16 @@ The script uses CRLF line endings, which is good for labels and `goto` in `cmd`.
 5. Open the app from a phone through the QR code.
 6. Repeat on a PC without Python (the winget path).
 7. Stop with Ctrl+C before you back up (see QA-14).
+
+## 7. Round 2 — fixes and re-test
+
+Every defect above was fixed by the developer with the failing QA test as the proof, and
+the QA tests were run again without changes to what they check.
+
+Changes the developer made inside `tests/qa/` (none changes an assertion):
+- `test_qa_csv.py`: the `upload()` helper was annotated `-> object`; corrected to `-> Any`, and `chunks()` got its return type, so `mypy --strict` passes.
+- Formatting and import order by `ruff`.
+
+One existing developer test was replaced rather than kept: `tests/api/test_ai.py::test_new_provider_needs_only_a_registry_entry` used to require that `config.py` lists every provider name. That requirement was the design smell reported as R-06, so the test now checks the opposite (the registry is the only list).
+
+Criteria clarified in `docs/CRITERIA.md` after QA and review: F2-07 (the duplicate suffix follows the language: "copia"), F3-08 (an empty or stop-word-only query lists at most 50 answers), F6-07 (per user from any device, or 20 per address), F6-12 (409), F8-07 (the language chosen in the UI).

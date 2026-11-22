@@ -9,9 +9,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from readyreply.config import Settings
 from readyreply.infrastructure.security.memory import MAX_TRACKED_KEYS, MemoryLoginFailureLog
 from readyreply.infrastructure.security.passwords import Argon2PasswordHasher
-from readyreply.config import Settings
 from readyreply.main import create_app
 from tests.conftest import ADMIN, Api, run_sql
 
@@ -162,8 +162,8 @@ def test_qa12_prompt_language_follows_the_request(admin: Api) -> None:
 
 
 def test_r08_phone_access_is_a_use_case() -> None:
-    from readyreply.application.system import GetPhoneAccess
     from readyreply.application.context import Actor
+    from readyreply.application.system import GetPhoneAccess
     from readyreply.domain.errors import ForbiddenError
     from readyreply.domain.users import Role
 
