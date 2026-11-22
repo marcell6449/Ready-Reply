@@ -2,12 +2,15 @@
 
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import text
+
+if TYPE_CHECKING:
+    from playwright.sync_api import Playwright
 
 from readyreply.config import Settings
 from readyreply.container import Container
@@ -132,3 +135,12 @@ def set_variables(api: Api, **values: str) -> Any:
             variable["value"] = values.pop(variable["key"])
     extra = [{"key": k, "label": k, "value": v, "builtin": False} for k, v in values.items()]
     return api.put("/api/variables", json=current + extra)
+
+
+@pytest.fixture(scope="session")
+def playwright_instance() -> Iterator["Playwright"]:
+    """One Playwright for the whole run; the e2e and QA browser tests share it."""
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as instance:
+        yield instance

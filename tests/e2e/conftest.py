@@ -15,7 +15,6 @@ from playwright.sync_api import (
     Page,
     Playwright,
     ViewportSize,
-    sync_playwright,
 )
 
 from readyreply.config import Settings
@@ -71,12 +70,6 @@ class LiveServer:
 def live_server(tmp_path: Path) -> Iterator[LiveServer]:
     with LiveServer(tmp_path / "e2e.db") as server:
         yield server
-
-
-@pytest.fixture(scope="session")
-def playwright_instance() -> Iterator[Playwright]:
-    with sync_playwright() as instance:
-        yield instance
 
 
 @pytest.fixture(scope="session")

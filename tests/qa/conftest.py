@@ -15,7 +15,7 @@ from typing import Any
 import httpx
 import pytest
 import uvicorn
-from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
+from playwright.sync_api import Browser, BrowserContext, Page, Playwright
 
 from readyreply.config import Settings
 from readyreply.infrastructure.clock import SystemClock
@@ -150,9 +150,9 @@ def fake_clock(monkeypatch: pytest.MonkeyPatch) -> FakeClock:
 
 
 @pytest.fixture(scope="session")
-def qa_playwright() -> Iterator[Playwright]:
-    with sync_playwright() as instance:
-        yield instance
+def qa_playwright(playwright_instance: Playwright) -> Playwright:
+    """Shares the single Playwright instance (only one can run per process)."""
+    return playwright_instance
 
 
 @pytest.fixture(scope="session")
