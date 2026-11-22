@@ -55,10 +55,7 @@ class SuggestAnswer:
 
     def execute(self, actor: Actor, question_id: int, locale: str | None) -> SuggestionOutcome:
         actor.require(Action.USE_AI)
-        settings = (
-            self._settings_by_locale.get(locale or "", None)
-            or self._settings_by_locale[self._default_locale]
-        )
+        settings = self._settings_by_locale[locale or self._default_locale]
         request = self._request(actor, question_id, settings)
         prompt = build_prompt(request, settings.template)
         try:
