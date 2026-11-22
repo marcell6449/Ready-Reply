@@ -10,6 +10,7 @@ if not exist "wheels\" goto :not_extracted
 call :find_python
 if not defined PY call :install_python
 if not defined PY goto :no_python
+echo Using Python: %PY%
 
 if not exist ".venv\installed-1.0.0.txt" (
   echo Installing Ready Reply. This happens only the first time...
@@ -26,17 +27,27 @@ echo   If Windows asks about the firewall, choose "Allow" on private networks so
 pause
 exit /b 0
 
+rem Finds Python 3.12 or newer: the py launcher, PATH, and the usual install folders
+rem (so it works even when "Add python.exe to PATH" was not ticked).
 :find_python
 set "PY="
-for %%V in (3.13 3.12 3.14) do if not defined PY py -%%V -c "import sys" >/dev/null 2>/dev/null && set "PY=py -%%V"
-if not defined PY python -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)" >/dev/null 2>/dev/null && set "PY=python"
-for %%V in (313 312) do if not defined PY if exist "%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe" set PY="%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe"
+call :try_python py -3
+if not defined PY call :try_python python
+if not defined PY call :try_python python3
+for %%V in (3.13 3.12 3.14 3.15) do if not defined PY call :try_python py -%%V
+for /d %%D in ("%LOCALAPPDATA%\Programs\Python\Python3*" "%LOCALAPPDATA%\Python\pythoncore-3*" "%ProgramFiles%\Python3*" "%SystemDrive%\Python3*") do if not defined PY if exist "%%~D\python.exe" call :try_python "%%~D\python.exe"
+exit /b 0
+
+:try_python
+rem Empty input: if a Python installer offers to download a missing version, it gets "no".
+%* -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)" <nul >nul 2>nul && set PY=%*
 exit /b 0
 
 :install_python
-where winget >/dev/null 2>/dev/null || exit /b 0
-echo Python 3.12 is needed. Installing it with winget (this can take a few minutes)...
-winget install -e --id Python.Python.3.12 --scope user --accept-package-agreements --accept-source-agreements
+where winget >nul 2>nul || exit /b 0
+echo Python 3.12 or newer was not found. Installing Python 3.13 with winget (a few minutes)...
+echo No se encontro Python 3.12 o mas nuevo. Instalando Python 3.13 con winget (unos minutos)...
+winget install -e --id Python.Python.3.13 --scope user --accept-package-agreements --accept-source-agreements
 call :find_python
 exit /b 0
 
@@ -56,9 +67,17 @@ exit /b 1
 
 :no_python
 echo.
-echo   Ready Reply needs Python 3.12 or newer.
-echo   1. A download page will open. Install Python and tick "Add python.exe to PATH".
-echo   2. Then double-click start.bat again.
+echo   Ready Reply needs Python 3.12 or newer and could not find it.
+echo   Ready Reply necesita Python 3.12 o mas nuevo y no lo encontro.
+echo.
+echo   Python versions found on this computer / Versiones de Python encontradas:
+py --list 2>nul
+where python 2>nul
+echo.
+echo   1. Install Python from the page that opens. On the first screen, tick "Add python.exe to PATH".
+echo      Instale Python desde la pagina que se abre. En la primera pantalla marque "Add python.exe to PATH".
+echo   2. Close this window and double-click start.bat again.
+echo      Cierre esta ventana y vuelva a hacer doble clic en start.bat.
 start "" "https://www.python.org/downloads/windows/"
 pause
 exit /b 1

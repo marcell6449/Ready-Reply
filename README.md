@@ -83,6 +83,8 @@ Ready Reply works fully without AI. To get suggestions for unanswered questions,
 
 **I forgot the administrator password.** Another administrator can set a new one in **Users**. If there is no other administrator, close the program and rename `data\readyreply.db`. The next start creates a new, empty library. Your old data stays in the renamed file.
 
+**I installed Python but `start.bat` still asks for it.** `start.bat` looks for Python 3.12 or newer with the `py` launcher, in the PATH and in the usual install folders, and shows the versions it found. Close every black window and double-click `start.bat` again. If it still fails, reinstall Python from python.org and tick **Add python.exe to PATH** on the first screen. Python 3.11 or older is not enough.
+
 **Port 8000 is busy.** Ready Reply automatically uses the next free port (8001 up to 8010) and opens it. To choose another port, set `RR_PORT` in `.env`.
 
 **How do I switch to English?** Click **EN** at the top. To change the default for everyone, set `RR_LOCALE=en` in `.env`.

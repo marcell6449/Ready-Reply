@@ -35,7 +35,8 @@ IGNORED = shutil.ignore_patterns("__pycache__", "*.pyc", "*.db", "*.db-*", ".env
 # Wheels for Windows (the main target) and Linux; macOS installs from PyPI on first run.
 WINDOWS = ("win_amd64",)
 LINUX = ("manylinux_2_28_x86_64", "manylinux2014_x86_64")
-PLATFORMS = [(WINDOWS, "312"), (WINDOWS, "313"), (LINUX, "312"), (LINUX, "313")]
+WINDOWS_PYTHONS = ("312", "313", "314", "315")
+PLATFORMS = [*((WINDOWS, python) for python in WINDOWS_PYTHONS), (LINUX, "312"), (LINUX, "313")]
 WINDOWS_ONLY = ["colorama==0.4.6"]  # needed by click on Windows; pip skips it on Linux
 FORBIDDEN_PARTS = {".env", "tests", ".venv", "data", "__pycache__"}
 
