@@ -12,19 +12,30 @@ _FORMULA_STARTS = ("=", "+", "-", "@", "\t", "\r")
 _FORMULA_ESCAPE = "'"
 
 
+def _column(name: str) -> str:
+    return name.strip().casefold()
+
+
 def validate_header(header: Sequence[str]) -> None:
-    if tuple(name.strip().casefold() for name in header) != CSV_HEADER:
+    if tuple(_column(name) for name in header) != CSV_HEADER:
         raise InvalidInputError("csv.invalid_header", expected=",".join(CSV_HEADER))
 
 
+_ESCAPED_STARTS = (*_FORMULA_STARTS, _FORMULA_ESCAPE)
+
+
 def escape_formula(cell: str) -> str:
-    """Stop spreadsheet apps from running cells such as "=HYPERLINK(...)"."""
-    return _FORMULA_ESCAPE + cell if cell.startswith(_FORMULA_STARTS) else cell
+    """Stop spreadsheet apps from running cells such as "=HYPERLINK(...)".
+
+    Cells that already start with the escape character are escaped too, so that
+    importing the file gives back exactly the original text.
+    """
+    return _FORMULA_ESCAPE + cell if cell.startswith(_ESCAPED_STARTS) else cell
 
 
 def _unescape_formula(cell: str) -> str:
-    escaped = cell.startswith(_FORMULA_ESCAPE) and cell[1:2].startswith(_FORMULA_STARTS)
-    return cell[1:] if escaped and cell[1:] else cell
+    escaped = cell.startswith(_FORMULA_ESCAPE) and cell[1:].startswith(_ESCAPED_STARTS)
+    return cell[1:] if escaped else cell
 
 
 def answer_to_row(draft: AnswerDraft) -> tuple[str, str, str, str]:
@@ -35,6 +46,7 @@ def answer_to_row(draft: AnswerDraft) -> tuple[str, str, str, str]:
 
 
 def row_to_draft(row: Mapping[str, str]) -> AnswerDraft:
-    cells = {name: _unescape_formula(row.get(name) or "") for name in CSV_HEADER}
+    by_column = {_column(name): value for name, value in row.items() if isinstance(name, str)}
+    cells = {name: _unescape_formula(by_column.get(name) or "") for name in CSV_HEADER}
     tags = tuple(cells["tags"].split(TAG_SEPARATOR))
     return AnswerDraft(cells["title"], cells["category"], cells["body"], tags).cleaned()

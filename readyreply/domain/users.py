@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
 
-from readyreply.domain.errors import InvalidInputError
+from readyreply.domain.errors import ConflictError, InvalidInputError
 
 PASSWORD_MIN = 8
 PASSWORD_MAX = 128
@@ -43,4 +43,4 @@ def validate_password(password: str) -> None:
 
 def ensure_an_admin_remains(users_after_change: Iterable[User]) -> None:
     if not any(user.role is Role.ADMIN and user.active for user in users_after_change):
-        raise InvalidInputError("user.last_admin")
+        raise ConflictError("user.last_admin")

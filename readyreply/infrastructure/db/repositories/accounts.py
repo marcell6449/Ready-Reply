@@ -1,5 +1,7 @@
 """Repositories for users and sessions."""
 
+from datetime import datetime
+
 from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import Session as OrmSession
 
@@ -103,3 +105,6 @@ class SqlSessionRepository:
 
     def delete_for_user(self, user_id: int) -> None:
         self._session.execute(delete(SessionRow).where(SessionRow.user_id == user_id))
+
+    def delete_expired(self, now: datetime) -> None:
+        self._session.execute(delete(SessionRow).where(SessionRow.expires_at <= now))

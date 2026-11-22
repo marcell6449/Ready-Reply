@@ -98,3 +98,23 @@ def test_answer_with_draft_updates_fields_and_time() -> None:
     updated = answer.with_draft(draft(title="Nuevo").cleaned(), later)
     assert answer.title_key == "horario"
     assert (updated.title, updated.updated_at, updated.created_at) == ("Nuevo", later, created)
+
+
+def test_symbol_only_titles_have_distinct_keys() -> None:
+    assert title_key("🍔") != title_key("🍕")
+    assert title_key("!!!") != title_key("☕")
+    assert title_key(" 🍔 ") == title_key("🍔")
+
+
+def test_invisible_only_title_is_required() -> None:
+    with pytest.raises(InvalidInputError) as error:
+        draft(title="​‍").cleaned()
+    assert error.value.code == "answer.title_required"
+
+
+def test_cleaned_fields_are_nfc_and_without_controls() -> None:
+    import unicodedata
+
+    cleaned = draft(title=unicodedata.normalize("NFD", "é" * 120), body="a\x00b").cleaned()
+    assert cleaned.title == "é" * 120
+    assert cleaned.body == "ab"

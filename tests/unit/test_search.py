@@ -135,3 +135,8 @@ def test_answer_matching_more_related_terms_wins_tie() -> None:
     built = SearchIndex.build(docs, groups, Tokenizer(STOP_WORDS))
     hits = engine().search(built, "simpe", {})
     assert hits[0].answer_id == 2
+
+
+def test_stop_words_only_lists_everything_like_empty_query() -> None:
+    assert ids("hola buenas") == ids("")
+    assert ids("de la") == ids("")

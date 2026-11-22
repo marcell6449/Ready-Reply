@@ -2,7 +2,9 @@
 
 import pytest
 
-from readyreply.domain.text import normalize, tokenize
+import unicodedata
+
+from readyreply.domain.text import clean_text, is_blank, normalize, tokenize
 
 
 @pytest.mark.parametrize(
@@ -29,3 +31,33 @@ def test_tokenize_splits_normalized_words() -> None:
 
 def test_tokenize_empty() -> None:
     assert tokenize("   ") == []
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Hora​rio", "Horario"),
+        ("Hor⁠ario", "Horario"),
+        ("Ho­rario", "Horario"),
+        ("a\x00b\x07c", "abc"),
+        ("línea\r\nnueva\rotra", "línea\nnueva\notra"),
+        (unicodedata.normalize("NFD", "é"), "é"),
+        ("💇‍♀️", "💇‍♀️"),
+        ("tab\tkept", "tab\tkept"),
+    ],
+)
+def test_clean_text(raw: str, expected: str) -> None:
+    assert clean_text(raw) == expected
+
+
+@pytest.mark.parametrize("raw", ["", "  ", "​‌‍", "⁠", "­", "\n\t"])
+def test_is_blank(raw: str) -> None:
+    assert is_blank(clean_text(raw))
+
+
+def test_not_blank() -> None:
+    assert not is_blank("🍔")
+
+
+def test_normalize_drops_invisible_characters() -> None:
+    assert normalize("Hora​rio") == "horario"

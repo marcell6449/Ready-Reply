@@ -3,7 +3,7 @@
 import secrets
 import threading
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from readyreply.application.context import Actor
 from readyreply.application.ports import (
@@ -15,7 +15,7 @@ from readyreply.application.ports import (
     UnitOfWorkFactory,
 )
 from readyreply.domain.errors import ConflictError, TooManyAttemptsError, UnauthenticatedError
-from readyreply.domain.sessions import Session, is_login_locked
+from readyreply.domain.sessions import ADDRESS_MAX_FAILURES, Session, is_login_locked
 from readyreply.domain.users import Role, User, clean_username, validate_password
 
 BUSINESS_ID = 1
@@ -32,6 +32,8 @@ class NewSession:
 class AuthenticatedSession:
     actor: Actor
     csrf_token: str
+    renewed_until: datetime | None = None
+    """Set when this request extended the session, so the cookie must be renewed too."""
 
 
 def actor_for(user: User) -> Actor:
@@ -92,7 +94,15 @@ class SetupFirstAdmin:
             return new_session
 
 
+@dataclass(frozen=True, slots=True)
+class _ThrottleKeys:
+    user: str
+    address: str
+
+
 class Login:
+    """Same work for every outcome (one hash check), throttled per user and per address."""
+
     def __init__(
         self,
         uow_factory: UnitOfWorkFactory,
@@ -106,25 +116,38 @@ class Login:
         self._failures = failures
         self._starter = starter
         self._clock = clock
+        self._decoy_hash = hasher.hash(secrets.token_urlsafe(16))
+        self._lock = threading.Lock()
 
     def execute(self, username: str, password: str, client: str) -> NewSession:
-        throttle_key = f"{client}:{username.strip().casefold()}"
-        if is_login_locked(self._failures.recent(throttle_key), self._clock.now()):
-            raise TooManyAttemptsError("auth.too_many_attempts")
-        with self._uow_factory() as uow:
-            user = self._authenticate(uow, username, password, throttle_key)
-            new_session = self._starter.start(uow, user)
-            uow.commit()
-        self._failures.clear(throttle_key)
+        name = username.strip().casefold()
+        keys = _ThrottleKeys(user=f"user:{name}", address=f"address:{client}")
+        with self._lock:
+            self._ensure_not_locked(keys)
+            with self._uow_factory() as uow:
+                user = self._authenticate(uow, name, password, keys)
+                uow.sessions.delete_expired(self._clock.now())
+                new_session = self._starter.start(uow, user)
+                uow.commit()
+        self._failures.clear(keys.user)
         return new_session
 
-    def _authenticate(self, uow: UnitOfWork, username: str, password: str, key: str) -> User:
-        user = uow.users.find_by_username(BUSINESS_ID, username.strip().casefold())
-        if user is None:
-            self._hasher.verify(self._hasher.hash("timing-equalizer"), password)
-        elif user.active and self._hasher.verify(user.password_hash, password):
+    def _ensure_not_locked(self, keys: _ThrottleKeys) -> None:
+        now = self._clock.now()
+        user_locked = is_login_locked(self._failures.recent(keys.user), now)
+        address_failures = self._failures.recent(keys.address)
+        if user_locked or is_login_locked(address_failures, now, ADDRESS_MAX_FAILURES):
+            raise TooManyAttemptsError("auth.too_many_attempts")
+
+    def _authenticate(self, uow: UnitOfWork, name: str, password: str, keys: _ThrottleKeys) -> User:
+        user = uow.users.find_by_username(BUSINESS_ID, name)
+        stored_hash = user.password_hash if user else self._decoy_hash
+        password_ok = self._hasher.verify(stored_hash, password)
+        if user is not None and user.active and password_ok:
             return user
-        self._failures.record(key, self._clock.now())
+        now = self._clock.now()
+        self._failures.record(keys.user, now)
+        self._failures.record(keys.address, now)
         raise UnauthenticatedError("auth.invalid_credentials")
 
 
@@ -161,11 +184,13 @@ class ResolveSession:
             user = uow.users.get(session.business_id, session.user_id)
             if not user.active:
                 raise UnauthenticatedError("auth.required")
-            self._refresh(uow, session)
-            return AuthenticatedSession(actor_for(user), session.csrf_token)
+            renewed_until = self._refresh(uow, session)
+            return AuthenticatedSession(actor_for(user), session.csrf_token, renewed_until)
 
-    def _refresh(self, uow: UnitOfWork, session: Session) -> None:
+    def _refresh(self, uow: UnitOfWork, session: Session) -> datetime | None:
         refreshed = session.refreshed(self._clock.now(), self._ttl)
-        if refreshed is not None:
-            uow.sessions.update(refreshed)
-            uow.commit()
+        if refreshed is None:
+            return None
+        uow.sessions.update(refreshed)
+        uow.commit()
+        return refreshed.expires_at

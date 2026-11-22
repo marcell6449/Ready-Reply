@@ -30,10 +30,23 @@ class MemoryLoginFailureLog:
 
     def record(self, key: str, now: datetime) -> None:
         with self._lock:
-            if len(self._failures) >= MAX_TRACKED_KEYS:
-                self._failures.clear()
+            if key not in self._failures and len(self._failures) >= MAX_TRACKED_KEYS:
+                self._evict(now)
             recent = [moment for moment in self._failures[key] if now - moment < LOGIN_WINDOW]
             self._failures[key] = [*recent, now]
+
+    def _evict(self, now: datetime) -> None:
+        """Forget expired keys first; if still full, forget the key with the fewest failures,
+        so flooding the log with made-up usernames cannot erase a real lockout."""
+        for key in [
+            k for k, moments in self._failures.items() if now - moments[-1] >= LOGIN_WINDOW
+        ]:
+            del self._failures[key]
+        if len(self._failures) >= MAX_TRACKED_KEYS:
+            weakest = min(
+                self._failures, key=lambda k: (len(self._failures[k]), self._failures[k][-1])
+            )
+            del self._failures[weakest]
 
     def recent(self, key: str) -> list[datetime]:
         with self._lock:

@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 
 from readyreply.domain.errors import InvalidInputError
-from readyreply.domain.text import normalize
+from readyreply.domain.text import clean_text, is_blank, normalize
 
 TITLE_MAX = 120
 BODY_MAX = 4000
@@ -15,13 +15,16 @@ TAGS_MAX_COUNT = 20
 
 
 def title_key(title: str) -> str:
-    """Comparison key so "Horario" and " HORÁRIO " count as the same title."""
-    return normalize(title)
+    """Comparison key so "Horario" and " HORÁRIO " count as the same title.
+
+    Titles made only of emoji or symbols keep their symbols, so "🍔" and "🍕" differ.
+    """
+    return normalize(title) or " ".join(clean_text(title).casefold().split())
 
 
 def _require_text(value: str, limit: int, field: str) -> str:
-    cleaned = value.strip()
-    if not cleaned:
+    cleaned = clean_text(value).strip()
+    if is_blank(cleaned):
         raise InvalidInputError(f"answer.{field}_required")
     if len(cleaned) > limit:
         raise InvalidInputError(f"answer.{field}_too_long", limit=limit)
@@ -29,7 +32,7 @@ def _require_text(value: str, limit: int, field: str) -> str:
 
 
 def _clean_category(category: str) -> str:
-    cleaned = category.strip()
+    cleaned = clean_text(category).strip()
     if len(cleaned) > CATEGORY_MAX:
         raise InvalidInputError("answer.category_too_long", limit=CATEGORY_MAX)
     return cleaned

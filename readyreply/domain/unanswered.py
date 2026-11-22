@@ -5,6 +5,7 @@ from datetime import datetime
 
 from readyreply.domain.errors import InvalidInputError
 from readyreply.domain.search.tokens import Tokenizer
+from readyreply.domain.text import clean_text
 
 MIN_QUESTION_CHARS = 3
 SAMPLE_MAX = 200
@@ -34,4 +35,4 @@ class QuestionKeyer:
 
 
 def sample_text(query: str) -> str:
-    return query.strip()[:SAMPLE_MAX]
+    return clean_text(query).strip()[:SAMPLE_MAX]

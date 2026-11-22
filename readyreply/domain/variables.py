@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from readyreply.domain.errors import InvalidInputError
 from readyreply.domain.templates import KEY_PATTERN
+from readyreply.domain.text import clean_text, is_blank
 
 BUILTIN_KEYS = ("name", "hours", "address", "sinpe", "phone", "prices")
 VALUE_MAX = 2000
@@ -30,15 +31,15 @@ def values_by_key(variables: Sequence[Variable]) -> dict[str, str]:
 
 
 def _clean_value(value: str) -> str:
-    cleaned = value.strip()
+    cleaned = clean_text(value).strip()
     if len(cleaned) > VALUE_MAX:
         raise InvalidInputError("variable.value_too_long", limit=VALUE_MAX)
     return cleaned
 
 
 def _clean_label(label: str) -> str:
-    cleaned = label.strip()
-    if not cleaned:
+    cleaned = clean_text(label).strip()
+    if is_blank(cleaned):
         raise InvalidInputError("variable.label_required")
     if len(cleaned) > LABEL_MAX:
         raise InvalidInputError("variable.label_too_long", limit=LABEL_MAX)

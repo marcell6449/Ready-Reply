@@ -54,3 +54,16 @@ def test_row_validation_uses_answer_rules() -> None:
 def test_row_missing_cells_are_empty() -> None:
     with pytest.raises(InvalidInputError):
         row_to_draft({"title": "T"})
+
+
+def test_rows_with_capitalized_or_spaced_header_are_read() -> None:
+    row = {"Title": "Horario", " CATEGORY ": "Info", "Body ": "Abrimos", "tags": "a|b"}
+    assert row_to_draft(row).title == "Horario"
+    assert row_to_draft(row).body == "Abrimos"
+
+
+@pytest.mark.parametrize("title", ["'=50% descuento", "'hola", "''", "'+1"])
+def test_apostrophe_titles_round_trip(title: str) -> None:
+    draft = AnswerDraft(title, "", "b", ())
+    row = answer_to_row(draft)
+    assert row_to_draft(dict(zip(CSV_HEADER, row, strict=True))).title == title

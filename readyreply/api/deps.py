@@ -2,8 +2,9 @@
 
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Response
 
+from readyreply.api.cookies import set_private_cookie
 from readyreply.api.security import (
     CSRF_COOKIE,
     CSRF_HEADER,
@@ -25,11 +26,15 @@ def get_container(request: Request) -> Container:
 ContainerDep = Annotated[Container, Depends(get_container)]
 
 
-def current_session(request: Request, container: ContainerDep) -> AuthenticatedSession:
+def current_session(
+    request: Request, response: Response, container: ContainerDep
+) -> AuthenticatedSession:
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         raise UnauthenticatedError("auth.required")
     session = container.auth.resolve.execute(token)
+    if session.renewed_until is not None:
+        set_private_cookie(response, SESSION_COOKIE, token, container.settings)
     if request.method not in SAFE_METHODS and not tokens_match(
         session.csrf_token, request.headers.get(CSRF_HEADER)
     ):

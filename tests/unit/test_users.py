@@ -2,7 +2,7 @@
 
 import pytest
 
-from readyreply.domain.errors import ForbiddenError, InvalidInputError
+from readyreply.domain.errors import ConflictError, ForbiddenError, InvalidInputError
 from readyreply.domain.permissions import Action, ensure_allowed, is_allowed
 from readyreply.domain.users import (
     Role,
@@ -72,6 +72,6 @@ def test_staff_forbidden(action: Action) -> None:
 def test_last_admin_must_remain() -> None:
     ensure_an_admin_remains([user(1, Role.ADMIN), user(2, Role.STAFF)])
     for users in ([user(1, Role.STAFF)], [user(1, Role.ADMIN, active=False), user(2, Role.STAFF)]):
-        with pytest.raises(InvalidInputError) as error:
+        with pytest.raises(ConflictError) as error:
             ensure_an_admin_remains(users)
         assert error.value.code == "user.last_admin"

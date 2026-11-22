@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
 
+from readyreply.api.cookies import set_private_cookie
 from readyreply.api.deps import ContainerDep, SessionDep, verify_pre_session_csrf
 from readyreply.api.schemas import Credentials, MeOut, SetupStatusOut
 from readyreply.api.security import CSRF_COOKIE, SESSION_COOKIE
@@ -16,27 +17,15 @@ PreSessionCsrf = Annotated[None, Depends(verify_pre_session_csrf)]
 UNKNOWN_CLIENT = "unknown"
 
 
-def _set_cookie(response: Response, name: str, value: str, settings: Settings) -> None:
-    response.set_cookie(
-        name,
-        value,
-        max_age=settings.session_hours * 3600,
-        httponly=True,
-        samesite="strict",
-        secure=settings.cookie_secure,
-        path="/",
-    )
-
-
 def _signed_in(response: Response, new: NewSession, settings: Settings) -> MeOut:
-    _set_cookie(response, SESSION_COOKIE, new.token, settings)
+    set_private_cookie(response, SESSION_COOKIE, new.token, settings)
     return MeOut(username=new.actor.username, role=new.actor.role, csrf_token=new.csrf_token)
 
 
 @router.get("/setup/status")
 def setup_status(response: Response, container: ContainerDep) -> SetupStatusOut:
     csrf = secrets.token_urlsafe(32)
-    _set_cookie(response, CSRF_COOKIE, csrf, container.settings)
+    set_private_cookie(response, CSRF_COOKIE, csrf, container.settings)
     return SetupStatusOut(
         needs_setup=container.auth.needs_setup.execute(),
         csrf_token=csrf,

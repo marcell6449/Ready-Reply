@@ -28,3 +28,8 @@ def test_minimum_accepted() -> None:
 def test_sample_text_trimmed_and_cut() -> None:
     assert sample_text("  hola  ") == "hola"
     assert len(sample_text("x" * 500)) == 200
+
+
+def test_greeting_only_is_not_recorded() -> None:
+    with pytest.raises(InvalidInputError):
+        KEYER.key("hola buenas")
