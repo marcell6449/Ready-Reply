@@ -5,8 +5,14 @@ import unicodedata
 _FORMAT = "Cf"
 _CONTROL = "Cc"
 _KEPT_CONTROLS = frozenset("\n\t")
-# Joiners and tag characters build emoji such as 💇‍♀️ or subdivision flags; keep them.
-_KEPT_FORMAT = frozenset("‍") | frozenset(map(chr, range(0xE0020, 0xE0080)))
+# Kept format characters: the emoji joiner (as in a person emoji with a gender sign), tag
+# characters (subdivision flags) and the text-direction marks right-to-left languages need.
+_EMOJI_JOINER = frozenset("\u200d")
+_EMOJI_TAGS = frozenset(map(chr, range(0xE0020, 0xE0080)))
+_DIRECTION_MARKS = frozenset("\u200e\u200f\u061c") | frozenset(
+    map(chr, [*range(0x202A, 0x202F), *range(0x2066, 0x206A)])
+)
+_KEPT_FORMAT = _EMOJI_JOINER | _EMOJI_TAGS | _DIRECTION_MARKS
 
 
 def _is_invisible(char: str) -> bool:

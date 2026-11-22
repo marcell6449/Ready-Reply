@@ -61,3 +61,8 @@ def test_not_blank() -> None:
 
 def test_normalize_drops_invisible_characters() -> None:
     assert normalize("Hora\u200brio") == "horario"
+
+
+def test_direction_marks_are_kept_for_right_to_left_text() -> None:
+    rtl = chr(0x202E) + "RTL " + chr(0x639) + chr(0x631) + chr(0x628) + chr(0x649) + chr(0x200F)
+    assert clean_text(rtl) == rtl
