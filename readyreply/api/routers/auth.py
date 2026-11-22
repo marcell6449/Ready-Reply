@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request, Response
 
 from readyreply.api.cookies import set_private_cookie
 from readyreply.api.deps import ContainerDep, SessionDep, verify_pre_session_csrf
-from readyreply.api.schemas import Credentials, MeOut, SetupStatusOut
+from readyreply.api.schemas import Credentials, MeOut, SetupIn, SetupStatusOut
 from readyreply.api.security import CSRF_COOKIE, SESSION_COOKIE
 from readyreply.application.auth import NewSession
 from readyreply.config import Settings
@@ -34,10 +34,8 @@ def setup_status(response: Response, container: ContainerDep) -> SetupStatusOut:
 
 
 @router.post("/setup")
-def setup(
-    body: Credentials, response: Response, container: ContainerDep, _: PreSessionCsrf
-) -> MeOut:
-    new = container.auth.setup.execute(body.username, body.password)
+def setup(body: SetupIn, response: Response, container: ContainerDep, _: PreSessionCsrf) -> MeOut:
+    new = container.auth.setup.execute(body.username, body.password, body.whatsapp or None)
     return _signed_in(response, new, container.settings)
 
 

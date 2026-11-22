@@ -29,7 +29,7 @@ A searchable library of answers built around the business's own data. Type a few
 
 1. **Unzip** `ready-reply-v1.0.0.zip`: right-click it → **Extract All** → **Extract**. Do not run `start.bat` from inside the zip.
 2. **Double-click `start.bat`.** The first time, it installs everything in about a minute. If Python is missing, it installs it for you, or opens the download page.
-3. **Create the administrator** in the browser window that opens. Then go to **Demo & CSV** and load a sample business to try it.
+3. **Create the administrator** in the browser window that opens, and enter your business WhatsApp number. It is linked to Ready Reply right away as the business phone. The welcome screen then shows the next steps.
 
 Keep the black window open while you use Ready Reply. Close it to stop the program.
 

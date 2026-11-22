@@ -139,6 +139,8 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | F6-11 | staff | they call any admin-only endpoint | the response is 403 |
 | F6-12 | the only active admin | they try to demote or deactivate themselves | it is rejected with 409 `user.last_admin` |
 | F6-13 | a deactivated user | they log in, or use an existing session | the response is 401 |
+| F6-15 | first-run setup | the owner enters a WhatsApp number such as `8888-1234` | after creating the admin, the number is saved at once as the `{phone}` business detail (`+506 8888 1234`) and a welcome screen confirms it and lists the next steps |
+| F6-16 | first-run setup | the WhatsApp number is invalid (`123`, letters) | it is rejected with `setup.invalid_whatsapp` and no administrator is created |
 | F6-14 | a username `"  Ana "` exists as `ana` | someone creates `ANA` | it is rejected with `user.username_taken` |
 
 ### F7 — Statistics

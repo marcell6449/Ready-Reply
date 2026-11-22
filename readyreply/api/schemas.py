@@ -24,6 +24,11 @@ class Credentials(BaseModel):
     password: str = Field(max_length=SHORT)
 
 
+class SetupIn(Credentials):
+    whatsapp: str | None = Field(default=None, max_length=40)
+    """Optional business WhatsApp number, saved as the {phone} business detail."""
+
+
 class MeOut(BaseModel):
     username: str
     role: Role

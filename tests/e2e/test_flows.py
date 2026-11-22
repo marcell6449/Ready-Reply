@@ -235,3 +235,28 @@ def test_two_seconds_with_1000_answers(page: Page, live_server: LiveServer) -> N
     elapsed = time.perf_counter() - started
     assert "8888-1234" in clipboard(page)
     assert elapsed < 2.0, f"took {elapsed:.2f}s"
+
+
+def test_registration_links_the_whatsapp_number_and_shows_next_steps(
+    page: Page, live_server: LiveServer
+) -> None:
+    page.goto(live_server.url)
+    page.fill("input[name=username]", "duena")
+    page.fill("input[name=password]", "clave-segura-1")
+    page.fill("input[name=whatsapp]", "8888-1234")
+    page.click("button[type=submit]")
+    expect(page.locator("h1")).to_have_text("¡Listo! Ready Reply está configurado")
+    expect(page.locator(".linked")).to_contain_text("+506 8888 1234")
+    expect(page.locator("#nav")).not_to_contain_text("Bienvenida")
+    page.get_by_role("link", name="Completar mis datos").click()
+    phone = page.locator("label.field", has_text="{phone}").locator("textarea")
+    expect(phone).to_have_value("+506 8888 1234")
+
+
+def test_registration_rejects_an_invalid_number(page: Page, live_server: LiveServer) -> None:
+    page.goto(live_server.url)
+    page.fill("input[name=username]", "duena")
+    page.fill("input[name=password]", "clave-segura-1")
+    page.fill("input[name=whatsapp]", "123")
+    page.click("button[type=submit]")
+    expect(page.locator(".form-error")).to_contain_text("Número de WhatsApp inválido")

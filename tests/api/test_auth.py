@@ -173,3 +173,33 @@ def test_admin_promotes_staff(admin: Api, staff: Api) -> None:
 def test_invalid_payload_has_code(admin: Api) -> None:
     response = admin.post("/api/answers", json={"title": 5})
     assert (response.status_code, response.json()["code"]) == (422, "request.invalid")
+
+
+def test_setup_associates_the_whatsapp_number_immediately(anon: Api) -> None:
+    csrf = anon.client.get("/api/setup/status").json()["csrf_token"]
+    response = anon.client.post(
+        "/api/setup",
+        json={"username": "duena", "password": "clave-segura-1", "whatsapp": "8888-1234"},
+        headers={"x-csrf-token": csrf},
+    )
+    assert response.status_code == 200
+    anon.csrf = response.json()["csrf_token"]
+    phone = next(v for v in anon.get("/api/variables").json() if v["key"] == "phone")
+    assert phone["value"] == "+506 8888 1234"
+
+
+def test_setup_rejects_an_invalid_whatsapp_number_and_creates_nothing(anon: Api) -> None:
+    csrf = anon.client.get("/api/setup/status").json()["csrf_token"]
+    response = anon.client.post(
+        "/api/setup",
+        json={"username": "duena", "password": "clave-segura-1", "whatsapp": "123"},
+        headers={"x-csrf-token": csrf},
+    )
+    assert (response.status_code, response.json()["code"]) == (422, "setup.invalid_whatsapp")
+    assert anon.get("/api/setup/status").json()["needs_setup"] is True
+
+
+def test_setup_without_whatsapp_number_still_works(anon: Api) -> None:
+    assert anon.setup_admin().status_code == 200
+    phone = next(v for v in anon.get("/api/variables").json() if v["key"] == "phone")
+    assert phone["value"] == ""

@@ -10,6 +10,8 @@ First public release.
 
 ### Added
 
+- Registration asks for the business WhatsApp number (optional) and links it to Ready Reply right away as the business phone. A welcome screen confirms it and lists the next steps.
+
 - Business variables (`{name}`, `{hours}`, `{address}`, `{sinpe}`, `{phone}`, `{prices}` and custom ones), filled into every answer when copying.
 - Answers: create, edit, delete and duplicate, with categories and tags.
 - Tolerant search: ignores accents and case, handles typos, prefixes while typing, configurable synonyms, ranked by relevance and usage.

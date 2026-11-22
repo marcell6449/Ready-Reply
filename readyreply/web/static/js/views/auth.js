@@ -11,36 +11,44 @@ const LOGIN_FORM = {
   passwordAutocomplete: "current-password", usernameHint: null, passwordHint: null,
 };
 
-function credentialsForm(options, onSubmit) {
+function credentialsForm(options, onSubmit, extraFields = []) {
   const username = h("input", { name: "username", autocomplete: "username", required: true, maxlength: 32 });
   const password = h("input", { name: "password", type: "password", required: true,
     autocomplete: options.passwordAutocomplete, maxlength: 128 });
   return submitForm({
     className: "panel auth-panel",
     submitLabel: t(options.submit),
-    onSubmit: () => onSubmit(username.value, password.value),
+    onSubmit: () => onSubmit({ username: username.value, password: password.value }),
   },
   h("h1", {}, t(options.title)), h("p", { class: "muted" }, t(options.intro)),
   field(t("auth.username"), username, options.usernameHint && t(options.usernameHint)),
-  field(t("auth.password"), password, options.passwordHint && t(options.passwordHint)));
+  field(t("auth.password"), password, options.passwordHint && t(options.passwordHint)),
+  extraFields);
 }
 
-async function signIn(url, username, password, onSignedIn) {
+async function signIn(url, body, onSignedIn) {
   const status = await api.get("/api/setup/status");
   setCsrf(status.csrf_token);
-  const me = await api.post(url, { username, password });
+  const me = await api.post(url, body);
   setCsrf(me.csrf_token);
   onSignedIn(me);
 }
 
 export function renderSetup(root, onSignedIn) {
+  const whatsapp = h("input", { name: "whatsapp", type: "tel", inputmode: "tel", autocomplete: "tel",
+    maxlength: 40, placeholder: "8888-1234" });
+  const afterSetup = (me) => {
+    window.location.hash = "#/welcome";
+    onSignedIn(me);
+  };
   show(root, credentialsForm(SETUP_FORM,
-    (username, password) => signIn("/api/setup", username, password, onSignedIn)));
+    (credentials) => signIn("/api/setup", { ...credentials, whatsapp: whatsapp.value }, afterSetup),
+    [field(t("setup.whatsapp"), whatsapp, t("setup.whatsapp_hint"))]));
 }
 
 export function renderLogin(root, onSignedIn, reason) {
   const form = credentialsForm(LOGIN_FORM,
-    (username, password) => signIn("/api/auth/login", username, password, onSignedIn));
+    (credentials) => signIn("/api/auth/login", credentials, onSignedIn));
   if (reason === "auth.session_expired") {
     form.insertBefore(h("p", { class: "warning" }, t("login.expired")), form.children[1]);
   }

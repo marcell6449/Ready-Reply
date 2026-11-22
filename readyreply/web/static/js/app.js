@@ -12,6 +12,7 @@ import { renderStats } from "./views/stats.js";
 import { renderSynonyms } from "./views/synonyms.js";
 import { renderUnanswered } from "./views/unanswered.js";
 import { renderUsers } from "./views/users.js";
+import { renderWelcome } from "./views/welcome.js";
 
 const view = () => document.getElementById("view");
 const LARGE_TEXT_KEY = "rr.largeText";
@@ -27,6 +28,7 @@ const ROUTES = {
   data: { render: renderData, admin: true, icon: "📦", more: true },
   phone: { render: renderPhone, admin: true, icon: "📱", more: true },
   more: { render: renderMore, admin: true, icon: "☰", mobileOnly: true },
+  welcome: { render: renderWelcome, admin: true, icon: "👋", hidden: true },
 };
 
 function allowedRoutes() {
@@ -42,7 +44,7 @@ function renderMore(root) {
 function renderNav(active) {
   const nav = document.getElementById("nav");
   nav.hidden = false;
-  show(nav, allowedRoutes().map(([name, route]) => h("a", {
+  show(nav, allowedRoutes().filter(([, route]) => !route.hidden).map(([name, route]) => h("a", {
     href: `#/${name}`,
     class: `nav-link${route.more ? " more-item" : ""}${route.mobileOnly ? " mobile-only" : ""}`,
     "aria-current": name === active ? "page" : null,

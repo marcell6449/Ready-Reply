@@ -175,6 +175,15 @@ fieldset.variable { border: 1px dashed var(--border); border-radius: 12px; displ
 .qr { width: 240px; height: 240px; background: #fff; border-radius: 12px; padding: 8px; }
 .url { font-size: 1.2rem; font-weight: 700; overflow-wrap: anywhere; }
 
+/* Welcome after registration */
+.linked {
+  display: flex; gap: 10px; align-items: flex-start; margin: 0;
+  background: var(--brand-soft); color: var(--brand-strong); border-radius: 12px; padding: 12px 14px; font-weight: 600;
+}
+.linked-check { font-size: 1.3rem; line-height: 1.1; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 14px; }
+.step p { margin: 0 0 8px; }
+
 /* Toast */
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--tap) + 28px); transform: translateX(-50%) translateY(20px);

@@ -21,8 +21,10 @@ from readyreply.domain.errors import (
     UnauthenticatedError,
     persisted_id,
 )
+from readyreply.domain.phone import WhatsAppNumber
 from readyreply.domain.sessions import ADDRESS_MAX_FAILURES, Session, is_login_locked
 from readyreply.domain.users import Role, User, clean_username, validate_password
+from readyreply.domain.variables import PHONE_KEY, with_value
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,17 +100,27 @@ class SetupFirstAdmin:
         self._business = business
         self._lock = threading.Lock()
 
-    def execute(self, username: str, password: str) -> NewSession:
+    def execute(self, username: str, password: str, whatsapp: str | None) -> NewSession:
         clean = clean_username(username)
         validate_password(password)
+        number = WhatsAppNumber.parse(whatsapp) if whatsapp else None
         with self._lock, self._uow_factory() as uow:
             if uow.users.any_exists():
                 raise ConflictError("setup.already_done")
+            business_id = self._business.current()
             password_hash = self._hasher.hash(password)
-            admin = User(None, self._business.current(), clean, password_hash, Role.ADMIN, True)
+            admin = User(None, business_id, clean, password_hash, Role.ADMIN, True)
             new_session = self._starter.start(uow, uow.users.add(admin))
+            if number is not None:
+                _associate_number(uow, business_id, number)
             uow.commit()
             return new_session
+
+
+def _associate_number(uow: UnitOfWork, business_id: int, number: WhatsAppNumber) -> None:
+    """The number becomes the business phone, so every answer that uses {phone} has it."""
+    variables = uow.variables.list_all(business_id)
+    uow.variables.replace_all(business_id, with_value(variables, PHONE_KEY, number.display))
 
 
 @dataclass(frozen=True, slots=True)

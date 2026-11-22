@@ -2,14 +2,15 @@
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from readyreply.domain.errors import InvalidInputError
 from readyreply.domain.templates import KEY_PATTERN
 from readyreply.domain.text import clean_text, is_blank
 
 BUSINESS_NAME_KEY = "name"
-BUILTIN_KEYS = (BUSINESS_NAME_KEY, "hours", "address", "sinpe", "phone", "prices")
+PHONE_KEY = "phone"
+BUILTIN_KEYS = (BUSINESS_NAME_KEY, "hours", "address", "sinpe", PHONE_KEY, "prices")
 VALUE_MAX = 2000
 LABEL_MAX = 60
 _KEY = re.compile(rf"^{KEY_PATTERN}$")
@@ -25,6 +26,10 @@ class Variable:
 
 def builtin_variables() -> list[Variable]:
     return [Variable(key=key, label="", value="", builtin=True) for key in BUILTIN_KEYS]
+
+
+def with_value(variables: Sequence[Variable], key: str, value: str) -> list[Variable]:
+    return [replace(v, value=value) if v.key == key else v for v in variables]
 
 
 def values_by_key(variables: Sequence[Variable]) -> dict[str, str]:
