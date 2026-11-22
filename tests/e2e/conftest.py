@@ -6,10 +6,12 @@ import threading
 import time
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 import uvicorn
 from playwright.sync_api import (
+    APIResponse,
     Browser,
     BrowserContext,
     Page,
@@ -20,6 +22,7 @@ from playwright.sync_api import (
 from readyreply.config import Settings
 from readyreply.infrastructure.network.lan import lan_ip
 from readyreply.main import create_app
+from tests.support.seed import seed_business
 
 CHROMIUM = os.environ.get("RR_E2E_CHROMIUM", "/opt/pw-browsers/chromium")
 VIEWPORTS: dict[str, ViewportSize] = {
@@ -114,9 +117,50 @@ def create_admin(page: Page, server: LiveServer) -> None:
     page.wait_for_selector("#search-input")
 
 
-def load_demo(page: Page, server: LiveServer, kind: str = "soda") -> None:
-    page.goto(f"{server.url}/#/data")
-    page.click(f"[data-demo={kind}]")
+class _Reply:
+    def __init__(self, response: APIResponse) -> None:
+        self.status_code = response.status
+        self._response = response
+
+    def json(self) -> Any:
+        return self._response.json()
+
+
+class PageApi:
+    """API calls that share the browser page's session cookie (for test setup only)."""
+
+    def __init__(self, page: Page, server: LiveServer) -> None:
+        self._request = page.request
+        self._base = server.url
+        self._csrf = str(self._request.get(f"{server.url}/api/auth/me").json()["csrf_token"])
+
+    def _headers(self) -> dict[str, str]:
+        return {"x-csrf-token": self._csrf}
+
+    def get(self, url: str, **_: Any) -> _Reply:
+        return _Reply(self._request.get(self._base + url))
+
+    def post(self, url: str, **kwargs: Any) -> _Reply:
+        response = self._request.post(
+            self._base + url, data=kwargs.get("json"), headers=self._headers()
+        )
+        return _Reply(response)
+
+    def put(self, url: str, **kwargs: Any) -> _Reply:
+        response = self._request.put(
+            self._base + url, data=kwargs.get("json"), headers=self._headers()
+        )
+        return _Reply(response)
+
+    def delete(self, url: str) -> _Reply:
+        return _Reply(self._request.delete(self._base + url, headers=self._headers()))
+
+
+def load_business(page: Page, server: LiveServer, kind: str = "soda") -> None:
+    """Test data: fill the library with a sample business, then show the search."""
+    seed_business(PageApi(page, server), kind)
+    page.goto(f"{server.url}/#/search")
+    page.reload()
     page.wait_for_selector(".card")
 
 

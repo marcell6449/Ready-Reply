@@ -51,8 +51,10 @@ class SynonymRepository(Protocol):
 
 
 class UnansweredRepository(Protocol):
-    def record(self, business_id: int, key: str, sample: str, now: datetime) -> None:
-        """Insert the question or atomically add one to its counter."""
+    def record(
+        self, business_id: int, key: str, sample: str, now: datetime, times: int = 1
+    ) -> None:
+        """Insert the question or atomically add `times` to its counter."""
         ...
 
     def list_open(self, business_id: int, limit: int) -> list[UnansweredQuestion]: ...
@@ -179,6 +181,12 @@ class AnswerWriter(Protocol):
 
 class SearchIndexProvider(Protocol):
     def get(self, uow: UnitOfWork, business_id: int) -> tuple[SearchIndex, dict[int, Answer]]: ...
+
+
+class ChatFileReader(Protocol):
+    def texts(self, data: bytes, max_bytes: int) -> list[str]:
+        """Chat texts in an uploaded .txt or .zip export. Raises for unreadable or huge files."""
+        ...
 
 
 class Texts(Protocol):

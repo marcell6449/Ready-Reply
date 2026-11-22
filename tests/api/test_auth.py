@@ -117,7 +117,6 @@ def test_staff_cannot_use_admin_endpoints(staff: Api) -> None:  # F6-11
         staff.get("/api/stats"),
         staff.get("/api/csv/export"),
         staff.post("/api/csv/import", content=b"title,category,body,tags\n"),
-        staff.post("/api/demo/soda", json={}),
         staff.post("/api/ai/suggest", json={"question_id": 1}),
         staff.put("/api/synonyms", json={"groups": []}),
         staff.get("/api/system/lan"),

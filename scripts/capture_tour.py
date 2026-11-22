@@ -59,7 +59,7 @@ class Tour:
         if not keep_toast:
             expect(self.page.locator("#toast.visible")).to_have_count(0, timeout=4000)
         if focus:
-            self.page.locator(focus).evaluate("el => el.scrollIntoView({block: 'center'})")
+            self.page.locator(focus).first.evaluate("el => el.scrollIntoView({block: 'center'})")
         self.page.wait_for_timeout(600)
         path = OUT / f"{name}-{self.device}.png"
         self.page.screenshot(path=str(path))
@@ -91,22 +91,36 @@ def admin_tour(tour: Tour) -> None:
     page.click("button[type=submit]")
     expect(page.locator(".linked")).to_contain_text("+506 8888 1234")
     tour.shot("01b-bienvenida-numero-asociado")
-    tour.go("data")
-    tour.shot("02-cargar-datos-de-ejemplo")
-    page.click("[data-demo=soda]")
-    page.wait_for_selector(".card")
+    import_chats(tour)
     tour.search("a que ora abren")
-    expect(page.locator(".card-title").first).to_have_text("Horario")
+    expect(page.locator(".card").first).to_contain_text("6:30 a.m.")
     tour.shot("03-buscar-con-errores-de-tipeo")
     page.locator(".card").first.get_by_role("button", name="Copiar").click()
     expect(page.locator("#toast")).to_contain_text("Copiado")
     tour.shot("04-copiado-con-un-clic", keep_toast=True)
     tour.search("simpe")
-    expect(page.locator(".card-title").first).to_have_text("Pago por SINPE Móvil")
+    expect(page.locator(".card").first).to_contain_text("8888-1234")
     tour.shot("05-buscar-sinpe")
     missing_variable(tour)
     unanswered_flow(tour)
     admin_screens(tour)
+
+
+CHATS = ROOT / "tests" / "fixtures" / "whatsapp"
+CHAT_FILES = ("android_soda.txt", "android_soda_2.txt", "ios_soda.txt")
+
+
+def import_chats(tour: Tour) -> None:
+    page = tour.page
+    tour.go("data")
+    tour.shot("02-importar-desde-whatsapp")
+    page.set_input_files("#chat-files", [str(CHATS / name) for name in CHAT_FILES])
+    expect(page.locator(".chat-preview")).to_contain_text("Esto encontramos")
+    tour.shot("02b-revisar-lo-encontrado")
+    tour.shot("02c-respuestas-encontradas", focus=".chat-preview .pick-card")
+    page.get_by_role("button", name="Guardar todo").click()
+    expect(page.locator("#chat-preview")).to_contain_text("Respuestas creadas")
+    tour.shot("02d-importacion-lista")
 
 
 def missing_variable(tour: Tour) -> None:
@@ -181,7 +195,7 @@ def csv_import(tour: Tour) -> None:
     with tempfile.TemporaryDirectory() as folder:
         csv_file = Path(folder) / "respuestas.csv"
         csv_file.write_text(SAMPLE_CSV, encoding="utf-8")
-        page.set_input_files("input[type=file]", str(csv_file))
+        page.set_input_files("#csv-file", str(csv_file))
         page.get_by_role("button", name="Importar CSV").click()
         expect(page.locator("#import-report")).to_contain_text("Fila")
     tour.shot("17-importar-csv-con-reporte", focus="#import-report")
@@ -191,10 +205,10 @@ def staff_tour(tour: Tour) -> None:
     page = tour.page
     page.click("#logout")
     tour.sign_in(*STAFF)
-    tour.search("envio express")
+    tour.search("hacen envios")
     tour.shot("20-dependiente-solo-busca-y-copia")
     page.click("#lang-toggle")
-    tour.search("delivery")
+    tour.search("sinpe")
     tour.shot("21-interfaz-en-ingles")
 
 

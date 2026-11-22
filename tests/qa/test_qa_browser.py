@@ -19,6 +19,7 @@ from tests.qa.conftest import (
     ui_search,
 )
 from tests.qa.test_qa_ai import FakeModel
+from tests.support.seed import seed_business
 
 pytestmark = pytest.mark.e2e
 
@@ -255,7 +256,7 @@ def test_expired_session_on_copy_goes_to_login_and_keeps_the_search(
 ) -> None:
     ui_create_admin(qa_page, qa_server)
     api = api_as_admin(qa_server)
-    api.post("/api/demo/soda", json={})
+    seed_business(api, "soda")
     qa_page.goto(qa_server.url)
     ui_search(qa_page, "horario")
     qa_page.context.clear_cookies()
@@ -339,7 +340,7 @@ def test_p2_phone_typing_finds_opening_hours(qa_browser: Browser, qa_server: QaS
     context = new_context(qa_browser, qa_server, "phone")
     page = context.new_page()
     ui_create_admin(page, qa_server)
-    api_as_admin(qa_server).post("/api/demo/soda", json={})
+    seed_business(api_as_admin(qa_server), "soda")
     page.goto(qa_server.url)
     page.wait_for_selector(".card")  # typing before the search bar is shown would be lost
     page.locator("#search-input").press_sequentially("a que hora abren", delay=60)
@@ -355,7 +356,7 @@ def test_p8_type_to_clipboard_under_2_seconds_with_1000_answers(
 ) -> None:
     ui_create_admin(qa_page, qa_server)
     api = api_as_admin(qa_server)
-    api.post("/api/demo/soda", json={})
+    seed_business(api, "soda")
     lines = ["title,category,body,tags"] + [
         f"Respuesta generada {i},Cat {i % 9},Texto de relleno número {i} con precio y envio,x{i}"
         for i in range(1000)

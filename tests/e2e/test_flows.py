@@ -2,6 +2,7 @@
 
 import re
 import time
+from pathlib import Path
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -11,7 +12,7 @@ from tests.e2e.conftest import (
     assert_no_horizontal_scroll,
     clipboard,
     create_admin,
-    load_demo,
+    load_business,
     search,
 )
 
@@ -22,7 +23,7 @@ pytestmark = pytest.mark.e2e
 @pytest.mark.promise_p3
 def test_search_with_typos_and_copy_in_one_click(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
-    load_demo(page, live_server)
+    load_business(page, live_server)
     search(page, "a que ora abren")
     first = page.locator(".card").first
     expect(first.locator(".card-title")).to_have_text("Horario")
@@ -69,7 +70,7 @@ def test_missing_variable_blocks_copy(page: Page, live_server: LiveServer) -> No
 @pytest.mark.promise_p4
 def test_unanswered_question_becomes_an_answer(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
-    load_demo(page, live_server)
+    load_business(page, live_server)
     search(page, "tienen parqueo")
     expect(page.locator(".empty-title")).to_contain_text("tienen parqueo")
     expect(page.locator("#recorded-note")).to_contain_text("Sin respuesta", timeout=4000)
@@ -90,7 +91,7 @@ def test_unanswered_question_becomes_an_answer(page: Page, live_server: LiveServ
 @pytest.mark.promise_p5
 def test_ai_manual_flow_needs_human_save(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
-    load_demo(page, live_server)
+    load_business(page, live_server)
     search(page, "aceptan mascotas")
     expect(page.locator("#recorded-note")).not_to_be_empty(timeout=4000)
     page.goto(f"{live_server.url}/#/unanswered")
@@ -131,7 +132,7 @@ def test_staff_sees_only_search_and_unanswered(page: Page, live_server: LiveServ
 
 def test_expired_session_keeps_search(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
-    load_demo(page, live_server)
+    load_business(page, live_server)
     search(page, "sinpe")
     expect(page.locator(".card-title").first).to_have_text("Pago por SINPE Móvil")
     page.context.clear_cookies()
@@ -168,7 +169,7 @@ def test_html_in_user_data_is_shown_as_text(page: Page, live_server: LiveServer)
 
 def test_no_horizontal_scroll_on_any_screen(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
-    load_demo(page, live_server, "hardware")
+    load_business(page, live_server, "hardware")
     for route in (
         "search",
         "unanswered",
@@ -192,7 +193,7 @@ def test_copy_works_over_wifi_address(page: Page, live_server: LiveServer, devic
     if device == "desktop":
         pytest.skip("same behaviour; checked once on the phone viewport")
     create_admin(page, live_server)
-    load_demo(page, live_server)
+    load_business(page, live_server)
     phone = page.context.new_page()
     phone.goto(live_server.lan_url)
     phone.wait_for_selector("input[name=username]")
@@ -218,7 +219,7 @@ IMPORT_CSV = """async (csv) => {
 @pytest.mark.promise_p8
 def test_two_seconds_with_1000_answers(page: Page, live_server: LiveServer) -> None:
     create_admin(page, live_server)
-    load_demo(page, live_server)
+    load_business(page, live_server)
     rows = "\n".join(
         f"Pregunta {i} sobre tema {i % 50},General,Texto de la respuesta {i},t{i}"
         for i in range(990)
@@ -260,3 +261,24 @@ def test_registration_rejects_an_invalid_number(page: Page, live_server: LiveSer
     page.fill("input[name=whatsapp]", "123")
     page.click("button[type=submit]")
     expect(page.locator(".form-error")).to_contain_text("Número de WhatsApp inválido")
+
+
+def test_import_answers_from_exported_whatsapp_chats(page: Page, live_server: LiveServer) -> None:
+    fixtures = Path(__file__).resolve().parents[1] / "fixtures" / "whatsapp"
+    create_admin(page, live_server)
+    page.goto(f"{live_server.url}/#/data")
+    expect(page.get_by_text("Importar desde WhatsApp")).to_be_visible()
+    expect(page.locator("[data-demo]")).to_have_count(0)
+    files = [
+        str(fixtures / name) for name in ("android_soda.txt", "android_soda_2.txt", "ios_soda.txt")
+    ]
+    page.set_input_files("#chat-files", files)
+    expect(page.locator(".chat-preview")).to_contain_text("Esto encontramos")
+    expect(page.locator(".chat-preview select")).to_have_value("Soda La Esquina")
+    expect(page.locator(".chat-preview")).to_contain_text("8888-1234 a nombre de María Rodríguez")
+    page.get_by_role("button", name="Guardar todo").click()
+    expect(page.locator("#chat-preview")).to_contain_text("Respuestas creadas")
+    search(page, "a que hora abren")
+    expect(page.locator(".card").first).to_contain_text("6:30 a.m.")
+    page.goto(f"{live_server.url}/#/unanswered")
+    expect(page.locator(".list-row").filter(has_text="parqueo")).to_contain_text("2")

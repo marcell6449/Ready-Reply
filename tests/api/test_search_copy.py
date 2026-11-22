@@ -3,11 +3,12 @@
 import pytest
 
 from tests.conftest import Api, answer_payload, set_variables
+from tests.support.seed import seed_business
 
 
 @pytest.fixture
 def soda(admin: Api) -> Api:
-    assert admin.post("/api/demo/soda", json={}).status_code == 200
+    seed_business(admin, "soda")
     return admin
 
 

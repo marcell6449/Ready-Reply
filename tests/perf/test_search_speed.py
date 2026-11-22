@@ -7,6 +7,7 @@ import time
 import pytest
 
 from tests.conftest import Api
+from tests.support.seed import seed_business
 
 pytestmark = [pytest.mark.perf, pytest.mark.promise_p8]
 ANSWERS = 1000
@@ -83,7 +84,7 @@ def test_search_under_200ms_with_1000_answers(admin: Api) -> None:
     rng = random.Random(42)
     report = admin.post("/api/csv/import", content=make_csv(rng)).json()
     assert report["imported"] == ANSWERS
-    admin.post("/api/demo/hardware", json={"mode": "replace"})
+    seed_business(admin, "hardware")
     admin.post("/api/csv/import", content=make_csv(rng))
     admin.put(
         "/api/synonyms",

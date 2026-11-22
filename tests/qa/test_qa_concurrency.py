@@ -104,16 +104,6 @@ def test_parallel_unanswered_from_twenty_users_counts_twenty(qa_server: QaServer
     assert question["times_searched"] == 20
 
 
-def test_parallel_demo_replace_leaves_one_clean_library(qa_server: QaServer) -> None:
-    admin = admin_user(qa_server)
-    statuses = parallel(
-        4, lambda _: admin.post("/api/demo/salon", json={"mode": "replace"}).status_code
-    )
-    assert all(status < 500 for status in statuses), statuses
-    titles = [a["title"] for a in admin.get("/api/answers").json()]
-    assert len(titles) == len(set(titles)) >= 12
-
-
 def test_parallel_csv_imports_do_not_duplicate_rows(qa_server: QaServer) -> None:
     admin = admin_user(qa_server)
     data = ("title,category,body,tags\n" + "".join(f"T{i},c,b,t\n" for i in range(60))).encode()

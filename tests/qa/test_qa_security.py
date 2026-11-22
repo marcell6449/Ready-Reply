@@ -29,7 +29,6 @@ STATE_CHANGING: list[tuple[str, str, Any]] = [
     ("PUT", "/api/users/{u}", {"role": "admin", "active": True}),
     ("DELETE", "/api/users/{u}", None),
     ("POST", "/api/csv/import", CSV),
-    ("POST", "/api/demo/soda", {"mode": "replace"}),
     ("POST", "/api/auth/logout", None),
 ]
 READS = [
@@ -57,7 +56,6 @@ ADMIN_ONLY_WRITES = {
     "/api/users",
     "/api/users/{u}",
     "/api/csv/import",
-    "/api/demo/soda",
 }
 ADMIN_ONLY_READS = {
     "/api/stats",

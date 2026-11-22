@@ -1,11 +1,9 @@
-"""Users, CSV transfer, demo data and phone access (F6, F9, F10)."""
+"""Users, CSV transfer and phone access (F6, F10)."""
 
 from fastapi import APIRouter, Request, Response
 
 from readyreply.api.deps import ActorDep, ContainerDep
 from readyreply.api.schemas import (
-    DemoIn,
-    DemoOut,
     ImportReportOut,
     LanOut,
     RejectedRowOut,
@@ -74,15 +72,6 @@ async def import_csv(request: Request, actor: ActorDep, container: ContainerDep)
     report = container.admin.import_csv.execute(actor, data)
     rejected = [RejectedRowOut(line=row.line, code=row.code) for row in report.rejected]
     return ImportReportOut(imported=report.imported, rejected=rejected)
-
-
-@router.post("/demo/{kind}")
-def load_demo(kind: str, body: DemoIn, actor: ActorDep, container: ContainerDep) -> DemoOut:
-    loaders = {
-        "empty_only": container.admin.load_demo.into_empty_library,
-        "replace": container.admin.load_demo.replacing_library,
-    }
-    return DemoOut(loaded=loaders[body.mode](actor, kind))
 
 
 HTTP_DEFAULT_PORT = 80

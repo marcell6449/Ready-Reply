@@ -18,9 +18,9 @@ Expected total time: about 15 minutes (plus the Ollama download, if you test it)
 
 | # | Step | Expected | OK? |
 |---|---|---|---|
-| B1 | **Ejemplos y CSV** → **Soda**. | The demo answers load. | ☐ |
-| B2 | Type `a que ora abren` (with the typo). | "Horario" is the first result. | ☐ |
-| B3 | Click **Copiar**, open WhatsApp Web and paste into a chat. | The text pastes exactly, with `*Soda La Esquina*` shown in bold by WhatsApp. | ☐ |
+| B1 | Export 3–5 chats from your WhatsApp Business (**⋮ → Más → Exportar chat → Sin archivos**), copy them to the PC, open **Importar** and drop them all. Tap **Guardar todo**. | Your business is selected, your answers, unanswered questions and SINPE/hours/address appear; after saving they are in **Respuestas**, **Sin respuesta** and **Mi negocio**. | ☐ |
+| B2 | Type a question a customer often asks, with a typo (for example `a que ora abren`). | The answer imported from your chats is the first result. | ☐ |
+| B3 | Click **Copiar**, open WhatsApp Web and paste into a chat. | The text pastes exactly, with emojis, line breaks and *bold* as in the answer. | ☐ |
 | B4 | **Mi negocio**: change the opening hours and save. Search `horario` again and copy. | The new hours appear. | ☐ |
 
 ## C. Phone on the same Wi-Fi (P3, F4-06)

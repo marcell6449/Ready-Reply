@@ -46,7 +46,7 @@ Status: **DRAFT for review.**
 
 ### F3 — Tolerant search
 
-Fixture: the soda demo data plus the synonym group `horario = abren, atienden, cierran, hora, abierto`.
+Fixture: the test-only soda business plus the synonym group `horario = abren, atienden, cierran, hora, abierto`.
 
 | ID | Given | When | Then |
 |---|---|---|---|
@@ -80,15 +80,25 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | F4-08 | a variable value containing `{hours}` | it is rendered | it is **not** expanded again (single pass) |
 | F4-09 | the user's session has expired | they click **Copy** | the response is 401. The UI goes to the login screen and keeps the search text. |
 
-### F9 — Demo data
+### F9 — Demo data (removed)
+
+Removed at the owner's request: the product has no sample data. Tests use test-only fixtures
+in `tests/fixtures/businesses/`, loaded through the public API.
+
+### F12 — Import from WhatsApp chats
 
 | ID | Given | When | Then |
 |---|---|---|---|
-| F9-01 | the library is empty | the admin picks "Soda", "Beauty salon" or "Hardware store" | that business's variables, at least 12 answers and its synonyms are loaded |
-| F9-02 | the library already has answers | the admin loads demo data | a confirmation explains that answers, variables and synonyms will be replaced. Cancel changes nothing. |
-| F9-03 | demo data was loaded | every demo answer is copied | none has missing variables |
-| F9-04 | staff is logged in | staff calls `POST /api/demo/soda` | the response is 403 |
-| F9-05 | demo data is loaded twice in a row (with confirmation) | — | there are no duplicate answers |
+| F12-01 | chats exported from WhatsApp Business (Android `.txt`, iPhone `.zip`, Spanish or English) | the admin drops them on **Import** | a preview lists the answers, unanswered questions and business details found. Nothing is saved yet. |
+| F12-02 | the business appears in every chat | the chats are analyzed | it is chosen as the business automatically; the admin can change it |
+| F12-03 | the same question asked in different words in several chats | the chats are analyzed | it becomes one answer with the business's reply and the number of times it was asked |
+| F12-04 | a question the business never answered | the chats are analyzed | it is listed as unanswered with its count, and saved to **Unanswered** on import |
+| F12-05 | the business wrote its SINPE number, hours or address | the chats are analyzed | they are proposed as business details; on import they are saved and written as `{sinpe}`, `{hours}`, `{address}` inside the imported answers |
+| F12-06 | an answer with the same title already exists | the preview is shown | it is marked "already exists", unchecked, and skipped on import |
+| F12-07 | greetings, thanks, deleted messages, media and system notices | the chats are analyzed | they are never taken as questions |
+| F12-08 | a file that is not a chat, a broken file, or a zip bomb | it is uploaded | it is skipped or rejected with `whatsapp.no_messages`, `whatsapp.invalid_file` or `whatsapp.too_large` (20 MB) |
+| F12-09 | staff | they call the import endpoints | the response is 403 |
+| F12-10 | customer names and numbers in the chats | the import is saved | they are not stored anywhere |
 
 ### F11 — Installer
 
@@ -197,7 +207,7 @@ Fixture: the soda demo data plus the synonym group `horario = abren, atienden, c
 | P3 | One-click copy, ready for WhatsApp Business | E2E test at 1280 px and 360 px. One click on Copy, then read the clipboard through Playwright: it equals the rendered text, with line breaks and emojis kept. WhatsApp formatting (`*bold*`, `_italic_`) passes through unchanged. **Manual:** paste into WhatsApp Web and WhatsApp Business on a phone (owner checklist in `docs/QA_REPORT.md`). |
 | P4 | Unanswered questions show the owner which answers are missing | E2E test: search something with no answer, wait, and the question appears under Unanswered with its count. Create an answer from it and it disappears. |
 | P5 | Free, optional AI that suggests answers, always reviewed by a human | F8-01 to F8-06 against a fake Ollama HTTP server. Ollama and the manual provider need no account, key or payment. The test checks that the answer count doesn't change until Save. **Manual:** owner checklist with real Ollama and `gemma3:4b`. |
-| P6 | Team-ready: roles, usage stats, CSV import/export, demo data | F6, F7, F10 and F9 suites, tagged `promise_p6`. |
+| P6 | Team-ready: roles, usage stats, CSV import/export | F6, F7 and F10 suites, tagged `promise_p6`. Answers from WhatsApp chats: F12. |
 | P7 | Installs on Windows with a double click and runs locally. Customer data never leaves the computer. | **Automated:** (a) a test that blocks all non-loopback sockets and runs the whole API suite with the default provider; (b) a test that no file in `web/static` references an external `http(s)://` URL; (c) the CSP header; (d) `start.sh` run from the zip in a clean folder. **Manual (owner, on Windows):** a documented 10-minute checklist: unzip, double-click, create admin, load demo, search, copy. |
 | P8 | Done in 2 seconds; search < 200 ms with 1,000 answers | **Perf test:** load 1,000 generated answers and run 50 varied queries (typos, accents, synonyms). The p95 server time must be < 200 ms. **E2E:** with 1,000 answers loaded, measure from typing the query to text in the clipboard. It must be < 2 seconds. |
 

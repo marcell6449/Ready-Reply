@@ -1,17 +1,12 @@
 import { api } from "../api.js";
 import { busy, h, show, toast } from "../dom.js";
 import { errorText, t } from "../i18n.js";
-import { state } from "../state.js";
+import { whatsappSection } from "./whatsapp.js";
 
 export function renderData(root) {
   const report = h("div", { id: "import-report", "aria-live": "polite" });
-  const file = h("input", { type: "file", accept: ".csv,text/csv", "aria-label": t("data.choose_file") });
-  show(root, h("section", { class: "panel" },
-    h("h1", {}, t("data.demo_title")), h("p", { class: "muted" }, t("data.demo_intro")),
-    h("div", { class: "demo-grid" }, state.demoKinds.map((kind) => h("button", {
-      class: "button demo", type: "button", "data-demo": kind,
-      onClick: (e) => busy(e.currentTarget, () => loadDemo(kind)),
-    }, t(`demo.${kind}`)))),
+  const file = h("input", { type: "file", id: "csv-file", accept: ".csv,text/csv", "aria-label": t("data.choose_file") });
+  show(root, whatsappSection(), h("section", { class: "panel spaced" },
     h("h2", {}, t("data.csv_title")), h("p", { class: "muted" }, t("data.csv_intro")),
     h("div", { class: "row wrap" },
       h("button", { class: "button secondary", type: "button",
@@ -20,18 +15,6 @@ export function renderData(root) {
       h("button", { class: "button", type: "button",
         onClick: (e) => busy(e.currentTarget, () => importCsv(file, report)) }, t("data.import"))),
     report));
-}
-
-async function loadDemo(kind) {
-  try {
-    await api.post(`/api/demo/${kind}`, { mode: "empty_only" });
-  } catch (error) {
-    if (error.code !== "demo.confirm_replace") throw error;
-    if (!window.confirm(t("data.confirm_replace"))) return;
-    await api.post(`/api/demo/${kind}`, { mode: "replace" });
-  }
-  toast(t("data.demo_loaded"));
-  window.location.hash = "#/search";
 }
 
 async function exportCsv() {

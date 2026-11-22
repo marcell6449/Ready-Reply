@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from readyreply.config import Settings
 from readyreply.main import create_app
 from tests.conftest import Api, answer_payload, set_variables
+from tests.support.seed import seed_business
 
 STATIC = Path(__file__).resolve().parents[2] / "readyreply" / "web" / "static"
 
@@ -82,22 +83,6 @@ def test_p6_stats_order_and_exclusions(admin: Api, app: Any) -> None:
     assert stats["total_answers"] == 2
 
 
-@pytest.mark.promise_p6
-def test_p6_demo_twice_has_no_duplicates_and_all_copy(admin: Api) -> None:
-    for kind in ("soda", "salon", "hardware"):
-        admin.post(f"/api/demo/{kind}", json={"mode": "replace"})
-        admin.post(f"/api/demo/{kind}", json={"mode": "replace"})
-        answers = admin.get("/api/answers").json()
-        assert len(answers) >= 12
-        assert len({a["title"] for a in answers}) == len(answers)
-        for answer in answers:
-            assert admin.post(f"/api/answers/{answer['id']}/copy").json()["missing"] == []
-    assert admin.post("/api/demo/soda", json={}).json()["code"] == "demo.confirm_replace"
-    before = admin.get("/api/answers").json()
-    assert admin.post("/api/demo/unknown", json={"mode": "replace"}).status_code == 404
-    assert admin.get("/api/answers").json() == before
-
-
 @pytest.mark.promise_p7
 def test_p7_default_provider_never_leaves_the_computer(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -121,7 +106,7 @@ def test_p7_default_provider_never_leaves_the_computer(
     with TestClient(create_app(settings)) as client:
         api = Api(client)
         api.setup_admin()
-        api.post("/api/demo/soda", json={})
+        seed_business(api, "soda")
         api.post("/api/unanswered", json={"query": "parqueo gratis"})
         question = api.get("/api/unanswered").json()[0]
         assert api.post("/api/ai/suggest", json={"question_id": question["id"]}).status_code == 200

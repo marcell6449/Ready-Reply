@@ -21,7 +21,8 @@ A searchable library of answers built around the business's own data. Type a few
 - **One-click copy:** ready for WhatsApp Business, including `*bold*`, `_italic_`, emojis and line breaks. No Meta API and no per-message fees.
 - **Unanswered questions:** when the team searches for something that has no answer, it is saved, so the owner sees which answers are missing.
 - **Free, optional AI:** suggests new answers. A person always reviews the text before saving.
-- **Team-ready:** admin and staff roles, usage stats, CSV import/export and demo data for three businesses.
+- **Built from your own WhatsApp chats:** export your chats from WhatsApp Business and drop them in. Ready Reply finds the questions customers ask most, turns your own replies into ready answers, detects your SINPE number, hours and address, and lists the questions you never answered. One click saves it all.
+- **Team-ready:** admin and staff roles, usage stats and CSV import/export.
 
 **Private and easy.** It installs on Windows with a double click and runs on the business's own computer. Customer data never leaves that computer. Phones on the same Wi-Fi open it with a QR code.
 
@@ -37,6 +38,17 @@ Keep the black window open while you use Ready Reply. Close it to stop the progr
 
 **Linux or macOS:** unzip, then run `./start.sh` in a terminal. It needs Python 3.12 or newer (on Debian/Ubuntu also `sudo apt install python3-venv`). On macOS the first run downloads the libraries from the internet. Press `Ctrl+C` in the terminal to stop it.
 
+## Create your answers from WhatsApp (automatic)
+
+1. In WhatsApp Business, open a chat with a customer and tap **⋮ → More → Export chat → Without media**. Repeat with as many chats as you like.
+2. Send the files to the computer (email, Google Drive or WhatsApp Web).
+3. In Ready Reply, open **Import** and drop all the files at once (`.txt` or `.zip`).
+4. Ready Reply shows what it found: your answers, the questions you never answered and your business details. Uncheck anything you do not want, then tap **Save all**.
+
+Everything is processed on your computer. Customer names and numbers are not saved. Ready Reply does not connect to your WhatsApp account: the WhatsApp API costs money per message and unofficial tools can get a business number banned, so you export the chats yourself.
+
+![Importing WhatsApp chats](docs/tour/02b-revisar-lo-encontrado-celular.png)
+
 ## Use
 
 | Task | Where |
@@ -48,7 +60,7 @@ Keep the black window open while you use Ready Reply. Close it to stop the progr
 | Make "abren", "atienden" and "horario" find the same answer | **Synonyms** |
 | Add staff accounts | **Users** |
 | Most copied answers and most frequent missing questions | **Statistics** |
-| Load demo data, import or export answers as CSV | **Demo & CSV** |
+| Create answers from your WhatsApp chats, or import/export answers as CSV | **Import** |
 | Use it from a phone | **Open on phone**: scan the QR code |
 
 ![Unanswered questions and AI suggestion](docs/screenshots/phone-unanswered.png)
@@ -104,7 +116,7 @@ Ready Reply works fully without AI. To get suggestions for unanswered questions,
 
 **Ready Reply** es una biblioteca de respuestas listas para WhatsApp, pensada para sodas, salones de belleza, ferreterías y otras pymes. Usted guarda una vez los datos del negocio (horario, dirección, SINPE, precios) y se completan solos en cada respuesta. El buscador entiende errores de tipeo y palabras sin tildes. Con un clic copia la respuesta y la pega en WhatsApp.
 
-**Instalación en Windows:** descomprima el archivo, haga doble clic en `start.bat` y cree el usuario administrador en el navegador. Para probar, vaya a **Ejemplos y CSV** y cargue un negocio de ejemplo. Los datos se quedan en su computadora. Desde el celular, abra **Abrir en el celular** y escanee el código QR (misma red Wi-Fi).
+**Instalación en Windows:** descomprima el archivo, haga doble clic en `start.bat` y cree el usuario administrador en el navegador. Luego vaya a **Importar**, arrastre sus chats exportados de WhatsApp Business y toque **Guardar todo**: Ready Reply crea sus respuestas a partir de sus propios chats. Los datos se quedan en su computadora. Desde el celular, abra **Abrir en el celular** y escanee el código QR (misma red Wi-Fi).
 
 ## License
 

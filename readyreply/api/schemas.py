@@ -39,7 +39,6 @@ class SetupStatusOut(BaseModel):
     needs_setup: bool
     csrf_token: str
     locale: str
-    demo_kinds: list[str]
 
 
 class VariableIO(BaseModel):
@@ -171,14 +170,6 @@ class RejectedRowOut(BaseModel):
 class ImportReportOut(BaseModel):
     imported: int
     rejected: list[RejectedRowOut]
-
-
-class DemoIn(BaseModel):
-    mode: Literal["empty_only", "replace"] = "empty_only"
-
-
-class DemoOut(BaseModel):
-    loaded: int
 
 
 class SuggestionOut(BaseModel):

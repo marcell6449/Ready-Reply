@@ -72,3 +72,11 @@ def test_custom_label_required() -> None:
 
 def test_custom_label_too_long() -> None:
     assert code_of([*builtins(), custom("wifi", "x" * 61)]) == "variable.label_too_long"
+
+
+def test_with_value_changes_only_that_key() -> None:
+    from readyreply.domain.variables import with_value
+
+    changed = with_value(builtins(sinpe="1"), "sinpe", "8888-1234")
+    assert values_by_key(changed)["sinpe"] == "8888-1234"
+    assert values_by_key(changed)["hours"] == ""

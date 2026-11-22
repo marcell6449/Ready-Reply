@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from tests.conftest import Api, answer_payload, run_sql, set_variables
+from tests.support.seed import seed_business
 
 SQLI = "'; DROP TABLE answers; --"
 HTML = '<img src=x onerror="window.__xss=1"><script>window.__xss=2</script>'
@@ -226,7 +227,7 @@ def test_unanswered_question_text_is_stored_literally(admin: Api, question: str)
 
 def test_stop_words_only_query_behaves_like_an_empty_query(admin: Api) -> None:
     """F3-03 says stop words are ignored; a greeting alone must not hide every answer."""
-    admin.post("/api/demo/soda", json={})
+    seed_business(admin, "soda")
     everything = [r["answer"]["id"] for r in admin.get("/api/search", params={"q": ""}).json()]
     for query in ("hola buenas", "de la", "que"):
         found = [r["answer"]["id"] for r in admin.get("/api/search", params={"q": query}).json()]
@@ -273,7 +274,6 @@ def test_every_error_code_returned_for_bad_input_has_a_message_in_both_languages
         admin.post("/api/csv/import", content=b"x,y\n1,2\n"),
         admin.post("/api/csv/import", content=b'title,category,body,tags\n"a,b\n'),
         admin.post("/api/answers", json={"title": 5}),
-        admin.post("/api/demo/nope", json={"mode": "replace"}),
         admin.delete("/api/unanswered/99999"),
     ]
     codes = {r.json()["code"] for r in responses}

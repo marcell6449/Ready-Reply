@@ -27,7 +27,7 @@ def test_every_literal_key_used_in_js_exists() -> None:
 def test_dynamic_keys_exist() -> None:
     routes = re.findall(r"^\s+(\w+): \{ render:", JS, re.MULTILINE)
     expected = {f"nav.{name}" for name in routes}
-    expected |= {"role.admin", "role.staff", "demo.soda", "demo.salon", "demo.hardware"}
+    expected |= {"role.admin", "role.staff", "chats.result"}
     expected |= {f"var.{key}" for key in ("name", "hours", "address", "sinpe", "phone", "prices")}
     expected |= {"setup.title", "setup.intro", "setup.submit", "login.title", "login.intro"}
     expected |= {"login.submit", "ai.unavailable"}

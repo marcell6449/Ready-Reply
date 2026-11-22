@@ -98,30 +98,3 @@ def test_too_many_rows(admin: Api) -> None:  # F10-08
 def test_bad_files(admin: Api, data: bytes, code: str) -> None:  # F10-09
     response = import_csv(admin, data)
     assert (response.status_code, response.json()["code"]) == (422, code)  # type: ignore[attr-defined]
-
-
-@pytest.mark.parametrize("kind", ["soda", "salon", "hardware"])
-def test_demo_loads_complete_business(admin: Api, kind: str) -> None:  # F9-01, F9-03
-    assert admin.post(f"/api/demo/{kind}", json={}).json()["loaded"] >= 12
-    answers = admin.get("/api/answers").json()
-    assert len(answers) >= 12
-    for answer in answers:
-        copied = admin.post(f"/api/answers/{answer['id']}/copy").json()
-        assert copied["missing"] == [], answer["title"]
-    assert admin.get("/api/synonyms").json()["groups"]
-
-
-def test_demo_needs_confirmation_to_replace(admin: Api) -> None:  # F9-02, F9-05
-    admin.post("/api/answers", json=answer_payload("Mía", "x"))
-    response = admin.post("/api/demo/soda", json={})
-    assert (response.status_code, response.json()["code"]) == (409, "demo.confirm_replace")
-    assert [a["title"] for a in admin.get("/api/answers").json()] == ["Mía"]
-    for _ in range(2):
-        assert admin.post("/api/demo/soda", json={"mode": "replace"}).status_code == 200
-    titles = [a["title"] for a in admin.get("/api/answers").json()]
-    assert len(titles) == len(set(titles)) == 13
-    assert "Mía" not in titles
-
-
-def test_unknown_demo(admin: Api) -> None:
-    assert admin.post("/api/demo/bakery", json={}).json()["code"] == "demo.not_found"

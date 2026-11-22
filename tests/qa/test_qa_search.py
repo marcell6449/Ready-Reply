@@ -7,13 +7,14 @@ import time
 import pytest
 
 from tests.conftest import Api, answer_payload
+from tests.support.seed import seed_business
 
 SYNONYM = {"groups": [["horario", "abren", "atienden", "cierran", "hora", "abierto"]]}
 
 
 @pytest.fixture
 def soda(admin: Api) -> Api:
-    assert admin.post("/api/demo/soda", json={}).status_code == 200
+    seed_business(admin, "soda")
     return admin
 
 

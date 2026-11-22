@@ -80,7 +80,7 @@ function libraryEmpty() {
     h("p", { class: "empty-title" }, t("search.library_empty")),
     isAdmin()
       ? h("div", { class: "row" },
-        h("a", { class: "button", href: "#/data" }, t("search.load_demo")),
+        h("a", { class: "button", href: "#/data" }, t("search.import_whatsapp")),
         h("a", { class: "button secondary", href: "#/answers/new" }, t("answers.new")))
       : h("p", { class: "muted" }, t("search.ask_admin")));
 }

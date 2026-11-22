@@ -29,11 +29,11 @@ def _to_question(row: UnansweredRow) -> UnansweredQuestion:
     )
 
 
-def _searched_again(sample: str, now: datetime) -> dict[str, object]:
-    """Update for a question already on file. If it was answered, it starts over at 1."""
+def _searched_again(sample: str, now: datetime, times: int) -> dict[str, object]:
+    """Update for a question already on file. If it was answered, it starts over."""
     was_resolved = UnansweredRow.resolved
     return {
-        "times_searched": case((was_resolved, 1), else_=UnansweredRow.times_searched + 1),
+        "times_searched": case((was_resolved, times), else_=UnansweredRow.times_searched + times),
         "resolved_answer_id": case((was_resolved, None), else_=UnansweredRow.resolved_answer_id),
         "last_seen": now,
         "sample_text": sample,
@@ -45,20 +45,22 @@ class SqlUnansweredRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def record(self, business_id: int, key: str, sample: str, now: datetime) -> None:
+    def record(
+        self, business_id: int, key: str, sample: str, now: datetime, times: int = 1
+    ) -> None:
         insert = _UPSERT_INSERTS[self._session.get_bind().dialect.name]
         statement = insert(UnansweredRow).values(
             business_id=business_id,
             key=key,
             sample_text=sample,
-            times_searched=1,
+            times_searched=times,
             first_seen=now,
             last_seen=now,
             resolved=False,
         )
         self._session.execute(
             statement.on_conflict_do_update(
-                index_elements=["business_id", "key"], set_=_searched_again(sample, now)
+                index_elements=["business_id", "key"], set_=_searched_again(sample, now, times)
             )
         )
 

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     locale: Literal["es", "en"] = "es"
     session_hours: int = Field(default=12, ge=1, le=24 * 30)
     max_csv_bytes: int = Field(default=MEGABYTE, ge=1)
+    max_chat_bytes: int = Field(default=20 * MEGABYTE, ge=1)
     cookie_secure: bool = False
     allowed_hosts: str = ""
     """Extra host names (comma separated) allowed in the Host header, e.g. a DNS name."""

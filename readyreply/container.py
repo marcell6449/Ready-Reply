@@ -10,9 +10,9 @@ from readyreply.application import (
     ai,
     answers,
     auth,
+    chat_import,
     copying,
     csv_transfer,
-    demo,
     search,
     stats,
     synonyms,
@@ -45,13 +45,14 @@ from readyreply.domain.search.stopwords import STOP_WORDS
 from readyreply.domain.search.tokens import Tokenizer
 from readyreply.domain.unanswered import QuestionKeyer
 from readyreply.domain.variables import BUILTIN_KEYS
+from readyreply.domain.whatsapp.analysis import ChatAnalyzer
 from readyreply.infrastructure.ai.manual_prompt import ManualPromptProvider
 from readyreply.infrastructure.ai.registry import build_provider
+from readyreply.infrastructure.chat_files import WhatsAppExportReader
 from readyreply.infrastructure.clock import SystemClock
 from readyreply.infrastructure.csv.codec import StandardCsvCodec
 from readyreply.infrastructure.db.engine import make_engine, make_session_factory
 from readyreply.infrastructure.db.unit_of_work import SqlUnitOfWork
-from readyreply.infrastructure.demo.catalog import JsonDemoCatalog
 from readyreply.infrastructure.network.lan import LocalNetwork
 from readyreply.infrastructure.search.distance import RapidfuzzDistance
 from readyreply.infrastructure.security.memory import MemoryLoginFailureLog, MemoryRepeatGuard
@@ -103,8 +104,9 @@ class AdminUseCases:
     delete_user: users.DeleteUser
     export_csv: csv_transfer.ExportAnswers
     import_csv: csv_transfer.ImportAnswers
-    load_demo: demo.LoadDemo
     phone_access: system.GetPhoneAccess
+    preview_chats: chat_import.PreviewChatImport
+    apply_chats: chat_import.ApplyChatImport
 
 
 @dataclass(frozen=True)
@@ -230,8 +232,16 @@ def _admin(shared: _Shared) -> AdminUseCases:
         delete_user=users.DeleteUser(shared.uow),
         export_csv=csv_transfer.ExportAnswers(shared.uow, codec),
         import_csv=csv_transfer.ImportAnswers(shared.uow, codec, shared.create_answer, max_bytes),
-        load_demo=demo.LoadDemo(shared.uow, JsonDemoCatalog(), shared.create_answer),
         phone_access=system.GetPhoneAccess(LocalNetwork()),
+        preview_chats=chat_import.PreviewChatImport(
+            shared.uow,
+            WhatsAppExportReader(),
+            ChatAnalyzer(shared.tokenizer),
+            shared.settings.max_chat_bytes,
+        ),
+        apply_chats=chat_import.ApplyChatImport(
+            shared.uow, shared.create_answer, QuestionKeyer(shared.tokenizer), shared.clock
+        ),
     )
 
 

@@ -29,7 +29,6 @@ def setup_status(response: Response, container: ContainerDep) -> SetupStatusOut:
         needs_setup=status.needs_setup,
         csrf_token=status.csrf_token,
         locale=container.settings.locale,
-        demo_kinds=list(container.admin.load_demo.kinds()),
     )
 
 

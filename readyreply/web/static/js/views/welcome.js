@@ -6,7 +6,7 @@ import { state } from "../state.js";
 const STEPS = [
   { text: "welcome.step_business", links: [["welcome.go_business", "#/business"]] },
   { text: "welcome.step_answers",
-    links: [["welcome.create_answer", "#/answers/new"], ["welcome.try_demo", "#/data"]] },
+    links: [["welcome.import_whatsapp", "#/data"], ["welcome.create_answer", "#/answers/new"]] },
   { text: "welcome.step_phone", links: [["welcome.open_phone", "#/phone"]] },
   { text: "welcome.step_whatsapp", links: [["welcome.start", "#/search"]] },
 ];

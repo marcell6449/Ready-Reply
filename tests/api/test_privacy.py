@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from tests.conftest import ADMIN, Api, answer_payload, set_variables
+from tests.support.seed import seed_business
 
 pytestmark = pytest.mark.promise_p7
 STATIC = Path(__file__).resolve().parents[2] / "readyreply" / "web" / "static"
@@ -33,7 +34,7 @@ def no_internet(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
 
 
 def test_full_usage_never_leaves_the_computer(admin: Api, no_internet: list[Any]) -> None:
-    admin.post("/api/demo/soda", json={})
+    seed_business(admin, "soda")
     set_variables(admin, hours="8 a 5")
     results = admin.get("/api/search", params={"q": "sinpe"}).json()
     admin.post(f"/api/answers/{results[0]['answer']['id']}/copy")

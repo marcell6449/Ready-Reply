@@ -5,7 +5,6 @@ export const state = {
   query: "",
   variables: [],
   pendingQuestion: null,
-  demoKinds: [],
 };
 
 export function isAdmin() {

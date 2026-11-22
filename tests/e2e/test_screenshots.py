@@ -3,7 +3,14 @@
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
-from tests.e2e.conftest import SCREENSHOTS, VIEWPORTS, LiveServer, create_admin, load_demo, search
+from tests.e2e.conftest import (
+    SCREENSHOTS,
+    VIEWPORTS,
+    LiveServer,
+    create_admin,
+    load_business,
+    search,
+)
 
 pytestmark = pytest.mark.e2e
 
@@ -21,7 +28,7 @@ def test_capture_screenshots(browser: Browser, live_server: LiveServer, device: 
     context.grant_permissions(["clipboard-read", "clipboard-write"], origin=live_server.url)
     page = context.new_page()
     create_admin(page, live_server)
-    load_demo(page, live_server)
+    load_business(page, live_server)
     search(page, "a que ora abren")
     expect(page.locator(".card-title").first).to_have_text("Horario")
     page.locator(".card").first.get_by_role("button", name="Copiar").click()

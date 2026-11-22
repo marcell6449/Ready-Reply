@@ -19,7 +19,7 @@ class Action(StrEnum):
     MANAGE_USERS = "manage_users"
     VIEW_STATS = "view_stats"
     TRANSFER_CSV = "transfer_csv"
-    LOAD_DEMO = "load_demo"
+    IMPORT_CHATS = "import_chats"
     USE_AI = "use_ai"
     VIEW_SYSTEM = "view_system"
 

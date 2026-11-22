@@ -17,6 +17,7 @@ import httpx
 import pytest
 
 from tests.qa.conftest import ADMIN_PASSWORD, HttpUser, free_port
+from tests.support.seed import seed_business
 
 pytestmark = [pytest.mark.promise_p7]
 ROOT = Path(__file__).resolve().parents[2]
@@ -120,7 +121,7 @@ def test_start_sh_installs_offline_migrates_and_restarts_fast(installed: Path) -
         assert status["needs_setup"] is True
         admin = HttpUser(first.url)
         assert admin.setup().status_code == 200
-        assert admin.post("/api/demo/soda", json={}).status_code == 200
+        seed_business(admin, "soda")
         results = admin.get("/api/search", params={"q": "a que ora abren"}).json()
         assert results[0]["answer"]["title"] == "Horario"
     finally:

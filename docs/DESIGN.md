@@ -33,7 +33,7 @@ Status: **DRAFT for review.** No production code is written until this document 
 | D9 | Copy uses `navigator.clipboard` and falls back to a hidden-textarea `execCommand('copy')`. | Phones open the app over plain `http://192.168.x.x`, which is **not** a secure context, so the Clipboard API is unavailable there. Without the fallback, copying on a phone breaks. |
 | D10 | The Windows installer `start.bat` uses Python 3.12+ if present. Otherwise it installs Python with `winget` (built into Windows 10/11), or opens a short guided page if `winget` is missing. Dependencies are installed **offline** from wheels bundled in the zip. | python.org is unreachable from this build environment, so a fully embedded Python runtime can't be bundled. Bundled wheels still make the install fast and work without internet after Python is present. |
 | D11 | AI providers sit behind the `SuggestionProvider` Protocol. The **default is Ollama** (free, runs on the business's computer, private) with the model `gemma3:4b`. Gemma 3 4B writes good Spanish, needs about 3.3 GB of disk and runs on an 8 GB PC without a graphics card. `RR_AI_MODEL` can switch to something lighter, such as `qwen2.5:1.5b`, on weaker PCs. Two more providers ship: **ManualPrompt** (shows the prompt to copy into any AI the owner uses; it opens no website by default) and **OpenAI-compatible HTTP** (any provider with that API and a key in `.env`). If Ollama isn't installed or running, the app falls back to ManualPrompt. | Free and private by default. A new provider is a new class plus one registry line in the composition root. |
-| D12 | All visible text lives in one translations file: `readyreply/web/static/i18n/translations.json`. It ships with Spanish (`es`, the default) and English (`en`), and users can switch language from the menu. The domain raises exceptions with **codes**, the API returns those codes, and the frontend translates them. Demo data is in Spanish (Costa Rican businesses). | Adding a language means editing one file. |
+| D12 | All visible text lives in one translations file: `readyreply/web/static/i18n/translations.json`. It ships with Spanish (`es`, the default) and English (`en`), and users can switch language from the menu. The domain raises exceptions with **codes**, the API returns those codes, and the frontend translates them. | Adding a language means editing one file. |
 
 ## 3. Layers
 
@@ -113,6 +113,7 @@ readyreply/
     csv_rules.py       row validation for import (pure; no file I/O)
     unanswered.py      question key + "should record" rule (min length, stability)
     ai.py              SuggestionRequest, Draft, ManualHandoff, prompt content rules
+    whatsapp/          parser (export format), analysis (questions, replies), details
   application/
     ports.py           Protocols: repositories, UnitOfWork, PasswordHasher, Clock,
                        TokenGenerator, EditDistance, SuggestionProvider, BusinessResolver
@@ -124,7 +125,7 @@ readyreply/
     auth.py            SetupFirstAdmin, Login, Logout, ResolveSession, ManageUsers
     stats.py           TopCopied, TopUnanswered
     csv_io.py          ExportAnswers, ImportAnswers (report of rejected rows)
-    demo.py            LoadDemoBusiness(soda | salon | hardware)
+    chat_import.py     PreviewChatImport, ApplyChatImport (WhatsApp exports)
     ai.py              BuildSuggestionPrompt, RequestSuggestion
   infrastructure/
     db/                models.py, repositories.py, unit_of_work.py, engine.py
@@ -133,12 +134,12 @@ readyreply/
     csv/               codec.py (encoding/BOM, delimiter sniffing, size limit)
     ai/                ollama.py, manual_prompt.py, openai_compatible.py, registry.py
     network/           lan_address.py, qr_svg.py (segno, generated locally)
-    demo/              soda.json, salon.json, hardware.json
+    chat_files.py      WhatsApp export reader (.txt, .zip with size limits)
   api/
     deps.py            current_user, require(Action), csrf, unit of work per request
     errors.py          DomainError → HTTP status + {"code": ...}
     routers/           setup, auth, variables, answers, search, copy, unanswered,
-                       users, stats, csv, demo, ai, system (LAN address + QR)
+                       users, stats, csv, ai, system (LAN address + QR), whatsapp
     schemas.py
   web/static/          index.html, app.css, js/*.js, i18n/translations.json
   config.py            Settings (pydantic-settings, RR_* env vars)
@@ -247,7 +248,7 @@ Either way, the result is only shown in an editable field. Saving goes through t
 | `GET/PUT /api/synonyms` | any / admin | |
 | `GET /api/stats` | admin | |
 | `GET /api/csv/export`, `POST /api/csv/import` | admin | Import limit: 1 MB and 5,000 rows. |
-| `POST /api/demo/{kind}` | admin | Asks for confirmation if answers already exist. |
+| `POST /api/whatsapp/analyze`, `POST /api/whatsapp/import` | admin | Preview first (saves nothing), then save the owner's selection in one transaction. |
 | `POST /api/ai/suggest` | admin | |
 | `GET /api/system/lan` | admin | Local URL and QR code as SVG. |
 

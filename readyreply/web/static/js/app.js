@@ -150,7 +150,6 @@ function restoreLargeText() {
 async function boot() {
   restoreLargeText();
   const status = await api.get("/api/setup/status");
-  state.demoKinds = status.demo_kinds;
   await loadTranslations(status.locale);
   setCsrf(status.csrf_token);
   applyChromeTexts();

@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from readyreply.api.errors import register_error_handlers
 from readyreply.api.request_guard import RequestGuard
-from readyreply.api.routers import activity, admin, auth, content
+from readyreply.api.routers import activity, admin, auth, content, whatsapp
 from readyreply.api.security import install_http_security
 from readyreply.config import Settings
 from readyreply.container import Container, build_container
@@ -25,6 +25,8 @@ def prepare_database(container: Container) -> None:
 
 
 CSV_IMPORT_PATH = "/api/csv/import"
+CHAT_ANALYZE_PATH = "/api/whatsapp/analyze"
+BASE64_FACTOR = 2  # base64 text is 4/3 of the file size; 2 leaves room for JSON
 CSV_BODY_FACTOR = 2  # the CSV route reports its own exact limit; the guard stops abuse
 
 
@@ -35,7 +37,10 @@ def _install_request_guard(app: FastAPI, settings: Settings) -> None:
     app.add_middleware(
         RequestGuard,
         default_limit=settings.max_request_bytes,
-        path_limits={CSV_IMPORT_PATH: settings.max_csv_bytes * CSV_BODY_FACTOR},
+        path_limits={
+            CSV_IMPORT_PATH: settings.max_csv_bytes * CSV_BODY_FACTOR,
+            CHAT_ANALYZE_PATH: settings.max_chat_bytes * BASE64_FACTOR,
+        },
         extra_hosts=extra_hosts,
     )
 
@@ -63,7 +68,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_error_handlers(app)
     install_http_security(app)
     _install_request_guard(app, container.settings)
-    for router in (auth.router, content.router, activity.router, admin.router):
+    for router in (auth.router, content.router, activity.router, admin.router, whatsapp.router):
         app.include_router(router)
     _serve_frontend(app)
     return app
