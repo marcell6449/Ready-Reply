@@ -163,3 +163,32 @@ def test_sinpe_number_without_dash_is_formatted() -> None:
 
 def test_no_senders_means_no_business() -> None:
     assert guess_business_sender([]) is None
+
+
+def test_messages_keep_their_timestamp_for_fingerprints() -> None:
+    from readyreply.domain.whatsapp.parser import message_fingerprint
+
+    first, second = chat("android_soda.txt")[:2]
+    assert first.stamp and first.stamp == second.stamp
+    assert message_fingerprint(first) != message_fingerprint(second)
+    assert len(message_fingerprint(first)) == 32
+    assert "María" not in message_fingerprint(first)
+
+
+def test_questions_already_seen_are_not_counted_again() -> None:
+    first = analyzer().analyze(all_chats(), BUSINESS)
+    seen = frozenset(first.question_fingerprints)
+    again = analyzer().analyze(all_chats(), BUSINESS, skip=seen)
+    assert again.answers == []
+    assert again.unanswered == []
+    assert again.question_fingerprints == ()
+
+
+def test_new_messages_in_a_re_exported_chat_are_counted() -> None:
+    first = analyzer().analyze([chat("android_soda.txt")], BUSINESS)
+    longer = [
+        *chat("android_soda.txt"),
+        ChatMessage("Pedro", "¿Venden café molido?", "20/11/24, 8:00"),
+    ]
+    again = analyzer().analyze([longer], BUSINESS, skip=frozenset(first.question_fingerprints))
+    assert [q.question for q in again.unanswered] == ["Venden café molido"]

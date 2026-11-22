@@ -1,6 +1,6 @@
 """Interfaces the use cases depend on. Infrastructure provides the implementations."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractContextManager
 from datetime import datetime, timedelta
 from types import TracebackType
@@ -17,6 +17,7 @@ from readyreply.domain.synonyms import SynonymGroup
 from readyreply.domain.unanswered import UnansweredQuestion
 from readyreply.domain.users import User
 from readyreply.domain.variables import Variable
+from readyreply.domain.whatsapp.imports import ImportedChat
 
 
 class BusinessRepository(Protocol):
@@ -87,6 +88,16 @@ class SessionRepository(Protocol):
     def delete_expired(self, now: datetime) -> None: ...
 
 
+class ChatImportRepository(Protocol):
+    def file_seen(self, business_id: int, file_hash: str) -> bool: ...
+    def record_file(self, business_id: int, file_hash: str, record: ImportedChat) -> None: ...
+    def recent(self, business_id: int, limit: int) -> list[ImportedChat]: ...
+    def seen_questions(self, business_id: int, fingerprints: Iterable[str]) -> frozenset[str]: ...
+    def remember_questions(self, business_id: int, fingerprints: Iterable[str]) -> None: ...
+    def chat_name(self, business_id: int) -> str | None: ...
+    def set_chat_name(self, business_id: int, name: str) -> None: ...
+
+
 class UnitOfWork(Protocol):
     """One transaction. Changes are kept only if `commit()` is called."""
 
@@ -98,6 +109,7 @@ class UnitOfWork(Protocol):
     copies: CopyEventRepository
     users: UserRepository
     sessions: SessionRepository
+    chat_imports: ChatImportRepository
 
     def commit(self) -> None: ...
     def savepoint(self) -> AbstractContextManager[None]:

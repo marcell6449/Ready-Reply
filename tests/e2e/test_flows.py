@@ -1,13 +1,15 @@
 """Main flows in a real browser, on desktop (1280 px) and phone (360 px)."""
 
 import re
+import shutil
 import time
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Browser, Page, expect
 
 from tests.e2e.conftest import (
+    VIEWPORTS,
     LiveServer,
     assert_no_horizontal_scroll,
     clipboard,
@@ -267,7 +269,7 @@ def test_import_answers_from_exported_whatsapp_chats(page: Page, live_server: Li
     fixtures = Path(__file__).resolve().parents[1] / "fixtures" / "whatsapp"
     create_admin(page, live_server)
     page.goto(f"{live_server.url}/#/data")
-    expect(page.get_by_text("Importar desde WhatsApp")).to_be_visible()
+    expect(page.get_by_text("Importar chats ahora")).to_be_visible()
     expect(page.locator("[data-demo]")).to_have_count(0)
     files = [
         str(fixtures / name) for name in ("android_soda.txt", "android_soda_2.txt", "ios_soda.txt")
@@ -282,3 +284,29 @@ def test_import_answers_from_exported_whatsapp_chats(page: Page, live_server: Li
     expect(page.locator(".card").first).to_contain_text("6:30 a.m.")
     page.goto(f"{live_server.url}/#/unanswered")
     expect(page.locator(".list-row").filter(has_text="parqueo")).to_contain_text("2")
+
+
+def test_chats_saved_in_the_folder_are_imported_by_themselves(
+    browser: Browser, device: str, tmp_path: Path
+) -> None:
+    folder = tmp_path / "Chats de WhatsApp"
+    watching = {
+        "chat_folder": str(folder),
+        "downloads_folder": "",
+        "auto_import_seconds": 0.3,
+        "auto_import_stable_seconds": 0,
+    }
+    with LiveServer(tmp_path / "auto.db", **watching) as server:
+        context = browser.new_context(viewport=VIEWPORTS[device])
+        page = context.new_page()
+        create_admin(page, server)
+        page.goto(f"{server.url}/#/data")
+        expect(page.locator("#auto-import")).to_contain_text("Activa")
+        expect(page.locator("#auto-import")).to_contain_text(str(folder))
+        fixtures = Path(__file__).resolve().parents[1] / "fixtures" / "whatsapp"
+        shutil.copy(fixtures / "android_soda.txt", folder / "Chat de WhatsApp con María.txt")
+        expect(page.locator("#toast")).to_contain_text("Se importó un chat nuevo", timeout=15000)
+        expect(page.locator("#auto-import .history")).to_contain_text("respuestas nuevas")
+        search(page, "a que hora abren")
+        expect(page.locator(".card").first).to_contain_text("6:30 a.m.")
+        context.close()

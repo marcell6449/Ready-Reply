@@ -125,7 +125,8 @@ readyreply/
     auth.py            SetupFirstAdmin, Login, Logout, ResolveSession, ManageUsers
     stats.py           TopCopied, TopUnanswered
     csv_io.py          ExportAnswers, ImportAnswers (report of rejected rows)
-    chat_import.py     PreviewChatImport, ApplyChatImport (WhatsApp exports)
+    chat_import.py     PreviewChatImport, ApplyChatImport, ChatWriter (WhatsApp exports)
+    auto_import.py     AutoImportChats, GetAutoImportStatus (watched folders)
     ai.py              BuildSuggestionPrompt, RequestSuggestion
   infrastructure/
     db/                models.py, repositories.py, unit_of_work.py, engine.py
@@ -135,6 +136,7 @@ readyreply/
     ai/                ollama.py, manual_prompt.py, openai_compatible.py, registry.py
     network/           lan_address.py, qr_svg.py (segno, generated locally)
     chat_files.py      WhatsApp export reader (.txt, .zip with size limits)
+    chat_watch.py      folder watcher for automatic import (background thread)
   api/
     deps.py            current_user, require(Action), csrf, unit of work per request
     errors.py          DomainError → HTTP status + {"code": ...}

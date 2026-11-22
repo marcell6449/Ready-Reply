@@ -179,6 +179,8 @@ fieldset.variable { border: 1px dashed var(--border); border-radius: 12px; displ
 .pick input[type="checkbox"] { flex: none; margin-top: 2px; }
 .pick-card { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
 .spaced { margin-top: 16px; }
+.folders, .history { margin: 0; padding-left: 20px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+.folders code { font-size: 0.85rem; background: var(--bg); padding: 2px 6px; border-radius: 6px; }
 
 /* AI, phone */
 #ai-panel, #chat-preview { scroll-margin-top: 150px; }

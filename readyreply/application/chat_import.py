@@ -101,37 +101,26 @@ class PreviewChatImport:
             raise PayloadTooLargeError("whatsapp.too_large", limit=self._max_bytes)
 
 
-class ApplyChatImport:
-    """Saves what the owner kept from the preview, in one transaction."""
+class ChatWriter:
+    """Saves imported answers, questions and business details inside the caller's transaction."""
 
-    def __init__(
-        self,
-        uow_factory: UnitOfWorkFactory,
-        create: AnswerWriter,
-        keyer: QuestionKeyer,
-        clock: Clock,
-    ) -> None:
-        self._uow_factory = uow_factory
+    def __init__(self, create: AnswerWriter, keyer: QuestionKeyer, clock: Clock) -> None:
         self._create = create
         self._keyer = keyer
         self._clock = clock
 
-    def execute(self, actor: Actor, selection: ChatSelection) -> ChatImportResult:
-        actor.require(Action.IMPORT_CHATS)
+    def write(self, uow: UnitOfWork, actor: Actor, selection: ChatSelection) -> ChatImportResult:
         if not set(selection.details) <= set(BUILTIN_KEYS):
             raise InvalidInputError("whatsapp.unknown_detail")
         drafts = [
             replace(draft, body=with_placeholders(draft.body, selection.details))
             for draft in selection.answers
         ]
-        with self._uow_factory() as uow:
-            details = self._save_details(uow, actor, selection.details)
-            created = self._save_answers(uow, actor, drafts)
-            questions = self._save_questions(uow, actor, selection.questions)
-            uow.businesses.bump_revision(actor.business_id)
-            uow.commit()
-        skipped = len(selection.answers) - created
-        return ChatImportResult(created, skipped, questions, details)
+        details = self._save_details(uow, actor, selection.details)
+        created = self._save_answers(uow, actor, drafts)
+        questions = self._save_questions(uow, actor, selection.questions)
+        uow.businesses.bump_revision(actor.business_id)
+        return ChatImportResult(created, len(drafts) - created, questions, details)
 
     def _save_details(self, uow: UnitOfWork, actor: Actor, details: Mapping[str, str]) -> int:
         variables = uow.variables.list_all(actor.business_id)
@@ -164,3 +153,18 @@ class ApplyChatImport:
             uow.unanswered.record(actor.business_id, key, sample_text(text), now, max(times, 1))
             saved += 1
         return saved
+
+
+class ApplyChatImport:
+    """Saves what the owner kept from the preview, in one transaction."""
+
+    def __init__(self, uow_factory: UnitOfWorkFactory, writer: ChatWriter) -> None:
+        self._uow_factory = uow_factory
+        self._writer = writer
+
+    def execute(self, actor: Actor, selection: ChatSelection) -> ChatImportResult:
+        actor.require(Action.IMPORT_CHATS)
+        with self._uow_factory() as uow:
+            result = self._writer.write(uow, actor, selection)
+            uow.commit()
+        return result

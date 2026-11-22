@@ -1,5 +1,13 @@
 """Shared fixtures: a fresh app on a temporary SQLite database per test."""
 
+import os
+import tempfile
+
+# Automatic chat import watches real folders; tests turn it on explicitly when they need it.
+os.environ.setdefault("RR_AUTO_IMPORT_SECONDS", "0")
+os.environ.setdefault("RR_DOWNLOADS_FOLDER", "")
+os.environ.setdefault("RR_CHAT_FOLDER", tempfile.mkdtemp(prefix="rr-test-chats-"))
+
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any

@@ -39,6 +39,8 @@ class BusinessRow(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
     locale: Mapped[str] = mapped_column(String(10))
     content_revision: Mapped[int] = mapped_column(Integer, default=0)
+    chat_name: Mapped[str | None] = mapped_column(String(80), nullable=True, default=None)
+    """How the business appears in its own WhatsApp exports (learned on the first import)."""
 
 
 class VariableRow(Base):
@@ -110,6 +112,31 @@ class CopyEventRow(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     copied_at: Mapped[datetime] = mapped_column(UtcDateTime)
+
+
+class ImportedChatRow(Base):
+    """A chat file already imported automatically. Its name is not kept (it names a customer)."""
+
+    __tablename__ = "imported_chats"
+    __table_args__ = (UniqueConstraint("business_id", "file_hash"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    business_id: Mapped[int] = _business_fk()
+    file_hash: Mapped[str] = mapped_column(String(64))
+    imported_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    answers: Mapped[int]
+    questions: Mapped[int]
+    details: Mapped[int]
+    error: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
+
+class SeenChatQuestionRow(Base):
+    """One-way fingerprints of customer questions already counted, so nothing counts twice."""
+
+    __tablename__ = "seen_chat_questions"
+    business_id: Mapped[int] = mapped_column(
+        ForeignKey("businesses.id", ondelete="CASCADE"), primary_key=True
+    )
+    fingerprint: Mapped[str] = mapped_column(String(32), primary_key=True)
 
 
 class SessionRow(Base):

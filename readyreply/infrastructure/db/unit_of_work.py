@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from readyreply.application.ports import (
     AnswerRepository,
     BusinessRepository,
+    ChatImportRepository,
     CopyEventRepository,
     SessionRepository,
     SynonymRepository,
@@ -25,6 +26,7 @@ from readyreply.infrastructure.db.repositories.activity import (
     SqlCopyEventRepository,
     SqlUnansweredRepository,
 )
+from readyreply.infrastructure.db.repositories.chat_imports import SqlChatImportRepository
 from readyreply.infrastructure.db.repositories.content import (
     SqlAnswerRepository,
     SqlBusinessRepository,
@@ -42,6 +44,7 @@ class SqlUnitOfWork:
     copies: CopyEventRepository
     users: UserRepository
     sessions: SessionRepository
+    chat_imports: ChatImportRepository
 
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
@@ -56,6 +59,7 @@ class SqlUnitOfWork:
         self.copies = SqlCopyEventRepository(self._session)
         self.users = SqlUserRepository(self._session)
         self.sessions = SqlSessionRepository(self._session)
+        self.chat_imports = SqlChatImportRepository(self._session)
         return self
 
     def commit(self) -> None:

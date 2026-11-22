@@ -40,10 +40,18 @@ Keep the black window open while you use Ready Reply. Close it to stop the progr
 
 ## Create your answers from WhatsApp (automatic)
 
-1. In WhatsApp Business, open a chat with a customer and tap **⋮ → More → Export chat → Without media**. Repeat with as many chats as you like.
-2. Send the files to the computer (email, Google Drive or WhatsApp Web).
-3. In Ready Reply, open **Import** and drop all the files at once (`.txt` or `.zip`).
-4. Ready Reply shows what it found: your answers, the questions you never answered and your business details. Uncheck anything you do not want, then tap **Save all**.
+Ready Reply reads your chats by itself from two folders:
+
+- **`Chats de WhatsApp`**, inside the program folder: any `.txt` or `.zip` saved there is imported.
+- Your **Downloads** folder: only files WhatsApp names as exports ("Chat de WhatsApp con…", "WhatsApp Chat…").
+
+1. In WhatsApp Business, open a chat with a customer and tap **⋮ → More → Export chat → Without media**.
+2. Save it into one of those folders: with Google Drive for desktop, or by downloading it from your email or WhatsApp Web.
+3. That's all. Within seconds Ready Reply creates the new answers, adds the questions you never answered to **Unanswered**, and fills in your SINPE number, hours and address if they are still empty (it never overwrites what you changed). **Import** shows the history.
+
+Each file and each customer question is imported only once: exporting the same chat again later only adds its new messages.
+
+Prefer to review first? In **Import**, drop the files on **Import chats now**: you see everything found, uncheck what you do not want and tap **Save all**.
 
 Everything is processed on your computer. Customer names and numbers are not saved. Ready Reply does not connect to your WhatsApp account: the WhatsApp API costs money per message and unofficial tools can get a business number banned, so you export the chats yourself.
 

@@ -1,12 +1,13 @@
 import { api } from "../api.js";
 import { busy, h, show, toast } from "../dom.js";
 import { errorText, t } from "../i18n.js";
+import { autoImportCard } from "./autoimport.js";
 import { whatsappSection } from "./whatsapp.js";
 
 export function renderData(root) {
   const report = h("div", { id: "import-report", "aria-live": "polite" });
   const file = h("input", { type: "file", id: "csv-file", accept: ".csv,text/csv", "aria-label": t("data.choose_file") });
-  show(root, whatsappSection(), h("section", { class: "panel spaced" },
+  show(root, autoImportCard(), h("div", { class: "spaced" }, whatsappSection()), h("section", { class: "panel spaced" },
     h("h2", {}, t("data.csv_title")), h("p", { class: "muted" }, t("data.csv_intro")),
     h("div", { class: "row wrap" },
       h("button", { class: "button secondary", type: "button",

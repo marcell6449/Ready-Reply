@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import timedelta
+from pathlib import Path
 
 import httpx
 from sqlalchemy import Engine
@@ -10,6 +11,7 @@ from readyreply.application import (
     ai,
     answers,
     auth,
+    auto_import,
     chat_import,
     copying,
     csv_transfer,
@@ -49,6 +51,7 @@ from readyreply.domain.whatsapp.analysis import ChatAnalyzer
 from readyreply.infrastructure.ai.manual_prompt import ManualPromptProvider
 from readyreply.infrastructure.ai.registry import build_provider
 from readyreply.infrastructure.chat_files import WhatsAppExportReader
+from readyreply.infrastructure.chat_watch import ChatFolderWatcher, WatchedFolder, downloads_folder
 from readyreply.infrastructure.clock import SystemClock
 from readyreply.infrastructure.csv.codec import StandardCsvCodec
 from readyreply.infrastructure.db.engine import make_engine, make_session_factory
@@ -106,6 +109,7 @@ class AdminUseCases:
     import_csv: csv_transfer.ImportAnswers
     phone_access: system.GetPhoneAccess
     preview_chats: chat_import.PreviewChatImport
+    auto_import_status: auto_import.GetAutoImportStatus
     apply_chats: chat_import.ApplyChatImport
 
 
@@ -119,6 +123,7 @@ class Container:
     content: ContentUseCases
     activity: ActivityUseCases
     admin: AdminUseCases
+    chat_watcher: ChatFolderWatcher
 
 
 def _prompt_settings(texts: Texts) -> ai.PromptSettings:
@@ -222,7 +227,33 @@ def _activity(shared: _Shared) -> ActivityUseCases:
     )
 
 
-def _admin(shared: _Shared) -> AdminUseCases:
+def _chat_writer(shared: _Shared) -> chat_import.ChatWriter:
+    return chat_import.ChatWriter(
+        shared.create_answer, QuestionKeyer(shared.tokenizer), shared.clock
+    )
+
+
+def _chat_watcher(shared: _Shared) -> ChatFolderWatcher:
+    settings = shared.settings
+    importer = auto_import.AutoImportChats(
+        uow_factory=shared.uow,
+        reader=WhatsAppExportReader(),
+        analyzer=ChatAnalyzer(shared.tokenizer),
+        writer=_chat_writer(shared),
+        clock=shared.clock,
+        business=shared.business,
+        max_bytes=settings.max_chat_bytes,
+    )
+    folders = [WatchedFolder(Path(settings.chat_folder), whatsapp_names_only=False)]
+    downloads = downloads_folder(settings.downloads_folder)
+    if downloads is not None:
+        folders.append(WatchedFolder(downloads, whatsapp_names_only=True))
+    return ChatFolderWatcher(
+        folders, importer, settings.auto_import_stable_seconds, settings.auto_import_seconds
+    )
+
+
+def _admin(shared: _Shared, watcher: ChatFolderWatcher) -> AdminUseCases:
     codec = StandardCsvCodec()
     max_bytes = shared.settings.max_csv_bytes
     return AdminUseCases(
@@ -239,8 +270,9 @@ def _admin(shared: _Shared) -> AdminUseCases:
             ChatAnalyzer(shared.tokenizer),
             shared.settings.max_chat_bytes,
         ),
-        apply_chats=chat_import.ApplyChatImport(
-            shared.uow, shared.create_answer, QuestionKeyer(shared.tokenizer), shared.clock
+        apply_chats=chat_import.ApplyChatImport(shared.uow, _chat_writer(shared)),
+        auto_import_status=auto_import.GetAutoImportStatus(
+            shared.uow, watcher.folders, watcher.enabled
         ),
     )
 
@@ -270,6 +302,7 @@ def build_container(settings: Settings) -> Container:
         return SqlUnitOfWork(session_factory)
 
     shared = _shared(settings, uow_factory)
+    watcher = _chat_watcher(shared)
     return Container(
         settings=settings,
         engine=engine,
@@ -278,5 +311,6 @@ def build_container(settings: Settings) -> Container:
         auth=_auth(shared),
         content=_content(shared),
         activity=_activity(shared),
-        admin=_admin(shared),
+        admin=_admin(shared, watcher),
+        chat_watcher=watcher,
     )

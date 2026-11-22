@@ -2,6 +2,7 @@
 
 import base64
 import binascii
+from datetime import datetime
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -120,3 +121,33 @@ def import_chats(body: ImportIn, actor: ActorDep, container: ContainerDep) -> Im
         questions=result.questions,
         details=result.details,
     )
+
+
+class ImportedChatOut(BaseModel):
+    imported_at: datetime
+    answers: int
+    questions: int
+    details: int
+    error: str | None
+
+
+class AutoImportOut(BaseModel):
+    enabled: bool
+    folders: list[str]
+    recent: list[ImportedChatOut]
+
+
+@router.get("/auto")
+def auto_import_status(actor: ActorDep, container: ContainerDep) -> AutoImportOut:
+    status = container.admin.auto_import_status.execute(actor)
+    recent = [
+        ImportedChatOut(
+            imported_at=r.imported_at,
+            answers=r.answers,
+            questions=r.questions,
+            details=r.details,
+            error=r.error,
+        )
+        for r in status.recent
+    ]
+    return AutoImportOut(enabled=status.enabled, folders=status.folders, recent=recent)

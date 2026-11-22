@@ -40,13 +40,14 @@ def _free_port() -> int:
 
 
 class LiveServer:
-    def __init__(self, database: Path) -> None:
+    def __init__(self, database: Path, **overrides: Any) -> None:
         self.port = _free_port()
         settings = Settings(
             database_url=f"sqlite:///{database}",
             open_browser=False,
             ai_provider="manual",
             _env_file=None,
+            **overrides,
         )
         app = create_app(settings)
         config = uvicorn.Config(app, host="0.0.0.0", port=self.port, log_level="warning")

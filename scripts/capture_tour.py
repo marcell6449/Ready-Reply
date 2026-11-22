@@ -5,6 +5,7 @@ and checks each step before taking its picture. Usage: python scripts/capture_to
 """
 
 import os
+import shutil
 import socket
 import tempfile
 import threading
@@ -40,6 +41,10 @@ def start_server(database: Path) -> tuple[uvicorn.Server, str]:
         ai_provider="ollama",
         ai_base_url=f"http://127.0.0.1:{free_port()}",
         ai_timeout_seconds=2,
+        chat_folder=str(database.parent / "chats"),
+        downloads_folder="",
+        auto_import_seconds=0.5,
+        auto_import_stable_seconds=0,
         _env_file=None,
     )
     server = uvicorn.Server(uvicorn.Config(create_app(settings), port=port, log_level="warning"))
@@ -121,6 +126,16 @@ def import_chats(tour: Tour) -> None:
     page.get_by_role("button", name="Guardar todo").click()
     expect(page.locator("#chat-preview")).to_contain_text("Respuestas creadas")
     tour.shot("02d-importacion-lista")
+    automatic_import(tour)
+
+
+def automatic_import(tour: Tour) -> None:
+    page = tour.page
+    folder = Path(page.locator("#auto-import code").first.inner_text())
+    shutil.copy(CHATS / "android_english.txt", folder / "Chat de WhatsApp con John.txt")
+    expect(page.locator("#toast")).to_contain_text("Se importó un chat nuevo", timeout=15000)
+    page.locator("#auto-import").evaluate("el => el.scrollIntoView({block: 'start'})")
+    tour.shot("02e-importacion-automatica", keep_toast=True)
 
 
 def missing_variable(tour: Tour) -> None:

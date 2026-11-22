@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from readyreply.domain.search.tokens import Tokenizer
 from readyreply.domain.text import normalize
 from readyreply.domain.whatsapp.details import DetectedDetail, detect_details
-from readyreply.domain.whatsapp.parser import ChatMessage
+from readyreply.domain.whatsapp.parser import ChatMessage, message_fingerprint
 
 Chat = Sequence[ChatMessage]
 
@@ -82,6 +82,8 @@ class ChatAnalysis:
     answers: list[SuggestedAnswer]
     unanswered: list[OpenQuestion]
     details: list[DetectedDetail]
+    question_fingerprints: tuple[str, ...] = ()
+    """The new customer questions this analysis counted (to skip them next time)."""
 
 
 @dataclass(slots=True)
@@ -133,18 +135,27 @@ class ChatAnalyzer:
         self._tokenizer = tokenizer
 
     def analyze(
-        self, chats: Sequence[Chat], business: str, known: Mapping[str, str] | None = None
+        self,
+        chats: Sequence[Chat],
+        business: str,
+        known: Mapping[str, str] | None = None,
+        skip: frozenset[str] = frozenset(),
     ) -> ChatAnalysis:
         groups: list[_Group] = []
+        counted: list[str] = []
         for chat in chats:
             for question, reply in self._exchanges(chat, business):
-                self._add(groups, question, reply)
+                fingerprint = message_fingerprint(question)
+                if fingerprint not in skip:
+                    counted.append(fingerprint)
+                    self._add(groups, question.text, reply)
         ordered = sorted(groups, key=lambda g: -len(g.questions))[:MAX_SUGGESTIONS]
         business_texts = [m.text for chat in chats for m in chat if m.sender == business]
         return ChatAnalysis(
             answers=[_suggest(g, known or {}) for g in ordered if g.replies],
             unanswered=[_open(g) for g in ordered if not g.replies],
             details=detect_details(business_texts),
+            question_fingerprints=tuple(dict.fromkeys(counted)),
         )
 
     def is_question(self, text: str) -> bool:
@@ -154,15 +165,15 @@ class ChatAnalyzer:
         first_word = normalize(text).split(" ", 1)[0]
         return "?" in text or first_word in _QUESTION_STARTS
 
-    def _exchanges(self, chat: Chat, business: str) -> list[tuple[str, str]]:
+    def _exchanges(self, chat: Chat, business: str) -> list[tuple[ChatMessage, str]]:
         """(customer question, business reply that followed; "" if none) pairs."""
-        exchanges: list[tuple[str, list[str]]] = []
+        exchanges: list[tuple[ChatMessage, list[str]]] = []
         for message in chat:
             if message.sender == business:
                 if exchanges:
                     exchanges[-1][1].append(message.text)
             elif self.is_question(message.text):
-                exchanges.append((message.text, []))
+                exchanges.append((message, []))
         return [(question, "\n".join(replies)) for question, replies in exchanges]
 
     def _add(self, groups: list[_Group], question: str, reply: str) -> None:

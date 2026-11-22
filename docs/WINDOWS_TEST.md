@@ -19,6 +19,7 @@ Expected total time: about 15 minutes (plus the Ollama download, if you test it)
 | # | Step | Expected | OK? |
 |---|---|---|---|
 | B1 | Export 3–5 chats from your WhatsApp Business (**⋮ → Más → Exportar chat → Sin archivos**), copy them to the PC, open **Importar** and drop them all. Tap **Guardar todo**. | Your business is selected, your answers, unanswered questions and SINPE/hours/address appear; after saving they are in **Respuestas**, **Sin respuesta** and **Mi negocio**. | ☐ |
+| B1b | Export another chat and save it into the `Chats de WhatsApp` folder inside the program folder (or download it to Descargas). Keep **Importar** open. | Within about 10 seconds a message says a new chat was imported, and it appears in the history. | ☐ |
 | B2 | Type a question a customer often asks, with a typo (for example `a que ora abren`). | The answer imported from your chats is the first result. | ☐ |
 | B3 | Click **Copiar**, open WhatsApp Web and paste into a chat. | The text pastes exactly, with emojis, line breaks and *bold* as in the answer. | ☐ |
 | B4 | **Mi negocio**: change the opening hours and save. Search `horario` again and copy. | The new hours appear. | ☐ |

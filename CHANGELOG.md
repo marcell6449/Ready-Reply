@@ -20,6 +20,7 @@ First public release.
 - Administrator and staff roles, Argon2id passwords, HttpOnly session cookies, CSRF protection and login throttling.
 - Statistics: most copied answers and most frequent unanswered questions.
 - CSV import and export (UTF-8, comma or semicolon, per-row error report, formula-injection protection).
+- Automatic import: chats saved in the `Chats de WhatsApp` folder or downloaded to Downloads are read by themselves, every file and question only once, without overwriting business details already set.
 - Import from WhatsApp: drop chats exported from WhatsApp Business. Ready Reply finds the most frequent customer questions, turns the business's own replies into answers, detects the SINPE number, hours and address, and lists unanswered questions. One click saves everything; everything runs on the computer.
 - Optional free AI suggestions through Ollama (default `gemma3:4b`), with a copy-and-paste fallback for any AI and an OpenAI-compatible provider. A person always reviews before saving.
 - Spanish (default) and English interface from one translations file.

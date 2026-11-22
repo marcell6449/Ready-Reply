@@ -98,7 +98,11 @@ in `tests/fixtures/businesses/`, loaded through the public API.
 | F12-07 | greetings, thanks, deleted messages, media and system notices | the chats are analyzed | they are never taken as questions |
 | F12-08 | a file that is not a chat, a broken file, or a zip bomb | it is uploaded | it is skipped or rejected with `whatsapp.no_messages`, `whatsapp.invalid_file` or `whatsapp.too_large` (20 MB) |
 | F12-09 | staff | they call the import endpoints | the response is 403 |
-| F12-10 | customer names and numbers in the chats | the import is saved | they are not stored anywhere |
+| F12-10 | customer names and numbers in the chats | the import is saved | they are not stored anywhere (not even the file name) |
+| F12-11 | automatic import is on (default) | a `.txt` or `.zip` appears in `Chats de WhatsApp`, or a file named like a WhatsApp export appears in Downloads | within seconds it is imported without any click: new answers, unanswered questions, and only the business details that are still empty |
+| F12-12 | the same file, or a re-export of the same chat | it appears again | nothing is counted twice; only new questions are added |
+| F12-13 | a file in the folder that is not a chat | it is scanned | it is noted once in the history as ignored and never retried |
+| F12-14 | the admin opens **Import** | — | it shows that automatic import is on, the watched folders and the latest automatic imports, refreshing by itself |
 
 ### F11 — Installer
 

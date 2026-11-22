@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     session_hours: int = Field(default=12, ge=1, le=24 * 30)
     max_csv_bytes: int = Field(default=MEGABYTE, ge=1)
     max_chat_bytes: int = Field(default=20 * MEGABYTE, ge=1)
+    chat_folder: str = "Chats de WhatsApp"
+    """Any .txt or .zip saved here is imported automatically."""
+    downloads_folder: str = "auto"
+    """Also watched for WhatsApp exports: "auto" (the user's Downloads), a path, or "" (off)."""
+    auto_import_seconds: float = Field(default=5, ge=0)
+    """How often the folders are checked; 0 turns automatic import off."""
+    auto_import_stable_seconds: float = Field(default=2, ge=0)
     cookie_secure: bool = False
     allowed_hosts: str = ""
     """Extra host names (comma separated) allowed in the Host header, e.g. a DNS name."""

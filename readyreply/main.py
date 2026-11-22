@@ -59,7 +59,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         prepare_database(container)
+        container.chat_watcher.ensure_folders()
+        container.chat_watcher.start()
         yield
+        container.chat_watcher.stop()
         container.http_client.close()
         container.engine.dispose()
 
